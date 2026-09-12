@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Battle Tank EMTI</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+    <main class="game-container">
+
+
+        <!-- ================================================= -->
+        <!-- CABEÇALHO -->
+        <!-- ================================================= -->
+
+        <header class="game-header">
+
+            <div class="title-area">
+
+                <h1>
+                    BATTLE TANK EMTI
+                </h1>
+
+                <p>
+                    Arena de Programadores
+                </p>
+
+            </div>
+
+
+            <div class="status">
+
+                <div>
+                    <small>
+                        JOGADOR
+                    </small>
+
+                    <strong id="playerName">
+                        COMADI
+                    </strong>
+                </div>
+
+
+                <div>
+                    <small>
+                        VIDA
+                    </small>
+
+                    <strong id="lifeValue">
+                        100
+                    </strong>
+                </div>
+
+
+                <div>
+                    <small>
+                        MUNIÇÃO
+                    </small>
+
+                    <strong id="ammoValue">
+                        ∞
+                    </strong>
+                </div>
+
+
+                <div>
+                    <small>
+                        PONTOS
+                    </small>
+
+                    <strong id="scoreValue">
+                        0
+                    </strong>
+                </div>
+
+
+                <!-- BOTÃO PARA O LABORATÓRIO -->
+
+                <a
+                    href="lab.html"
+                    class="lab-button"
+                >
+                    LABORATÓRIO
+                </a>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- ================================================= -->
+        <!-- ARENA -->
+        <!-- ================================================= -->
+
+        <section class="arena-container">
+
+            <canvas
+                id="gameCanvas"
+                width="1600"
+                height="900"
+            >
+                Seu navegador não suporta Canvas.
+            </canvas>
+
+
+            <!-- ÁREA PARA MENSAGENS DO JOGO -->
+
+            <div
+                id="gameMessages"
+                class="game-messages"
+            ></div>
+
+        </section>
+
+
+
+        <!-- ================================================= -->
+        <!-- CONTROLES -->
+        <!-- ================================================= -->
+
+        <footer class="controls">
+
+            <span>
+                WASD — movimentar
+            </span>
+
+            <span>
+                Mouse — mirar
+            </span>
+
+            <span>
+                Clique esquerdo — disparar
+            </span>
+
+            <span>
+                1 2 3 4 — trocar tanque
+            </span>
+
+            <span>
+                H — mostrar colisões
+            </span>
+
+            <span>
+                R — nova rodada
+            </span>
+
+        </footer>
+
+
+    </main>
+
+
+
+    <!-- ===================================================== -->
+    <!-- JAVASCRIPT -->
+    <!-- ===================================================== -->
+
+    <script src="game.js"></script>
+
+
+</body>
+
+</html>

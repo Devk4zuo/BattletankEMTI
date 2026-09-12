@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Battle Tank EMTI - Laboratório</title>
+
+    <link
+        rel="stylesheet"
+        href="lab.css"
+    >
+
+</head>
+
+<body>
+
+    <main class="lab">
+
+        <header class="topbar">
+
+            <div>
+
+                <h1>BATTLE TANK EMTI</h1>
+
+                <span>
+                    LABORATÓRIO DE ENGENHARIA
+                </span>
+
+            </div>
+
+            <a
+                class="arena-button"
+                href="index.html"
+            >
+                IR PARA ARENA
+            </a>
+
+        </header>
+
+
+        <section class="workspace">
+
+            <!-- PAINEL ESQUERDO -->
+
+            <aside class="tank-panel">
+
+                <h2>SEU TANQUE</h2>
+
+                <div class="tank-preview">
+
+                    <img
+                        id="tankPreview"
+                        src="assets/tanks/tanque_azul.png"
+                        alt="Tanque"
+                    >
+
+                </div>
+
+
+                <div class="stats">
+
+                    <div class="stat">
+
+                        <span>Motor</span>
+
+                        <strong id="speedLevel">
+                            MK-I
+                        </strong>
+
+                    </div>
+
+
+                    <div class="stat">
+
+                        <span>Velocidade</span>
+
+                        <strong id="speedValue">
+                            4.5
+                        </strong>
+
+                    </div>
+
+
+                    <div class="stat">
+
+                        <span>Projétil</span>
+
+                        <strong id="bulletLevel">
+                            MK-I
+                        </strong>
+
+                    </div>
+
+
+                    <div class="stat">
+
+                        <span>Vel. tiro</span>
+
+                        <strong id="bulletSpeedValue">
+                            13
+                        </strong>
+
+                    </div>
+
+
+                    <div class="stat">
+
+                        <span>Cadência</span>
+
+                        <strong id="fireRateValue">
+                            260 ms
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <h3>UPGRADES</h3>
+
+                <div id="upgradeList">
+
+                    <div class="upgrade locked">
+                        🔒 Motor MK-II
+                    </div>
+
+                    <div class="upgrade locked">
+                        🔒 Munição de alta velocidade
+                    </div>
+
+                    <div class="upgrade locked">
+                        🔒 Canhão rápido
+                    </div>
+
+                </div>
+
+            </aside>
+
+
+            <!-- CENTRO -->
+
+            <section class="code-area">
+
+                <div class="language-bar">
+
+                    <button
+                        id="javascriptButton"
+                        class="language active"
+                    >
+                        JavaScript
+                    </button>
+
+                    <button
+                        id="pythonButton"
+                        class="language"
+                    >
+                        Python
+                    </button>
+
+                </div>
+
+
+                <div class="challenge">
+
+                    <span class="challenge-number">
+                        DESAFIO 01
+                    </span>
+
+                    <h2>
+                        Sistema de potência do motor
+                    </h2>
+
+                    <p>
+                        Crie uma função que receba a potência
+                        atual do motor e retorne o dobro.
+                    </p>
+
+
+                    <div class="example">
+
+                        Entrada:
+
+                        <strong>
+                            10
+                        </strong>
+
+                        Resultado esperado:
+
+                        <strong>
+                            20
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="editor-header">
+
+                    <span id="fileName">
+                        motor.js
+                    </span>
+
+                    <span>
+                        BattleTank Script
+                    </span>
+
+                </div>
+
+
+                <textarea
+                    id="codeEditor"
+                    spellcheck="false"
+                ></textarea>
+
+
+                <div class="actions">
+
+                    <button
+                        id="resetButton"
+                        class="secondary"
+                    >
+                        REINICIAR
+                    </button>
+
+                    <button
+                        id="testButton"
+                        class="primary"
+                    >
+                        EXECUTAR TESTES
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- PAINEL DIREITO -->
+
+            <aside class="console-panel">
+
+                <h2>TESTES</h2>
+
+                <div
+                    id="testResults"
+                    class="test-results"
+                >
+
+                    <p class="waiting">
+                        Aguardando execução...
+                    </p>
+
+                </div>
+
+
+                <h2>CONSOLE</h2>
+
+                <div
+                    id="console"
+                    class="console"
+                >
+
+                    BattleTank Engine v0.1
+                    <br>
+                    Sistema pronto.
+
+                </div>
+
+            </aside>
+
+        </section>
+
+    </main>
+
+
+    <script src="lab.js"></script>
+
+</body>
+
+</html>

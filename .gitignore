@@ -1,0 +1,27 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Ambiente virtual
+.venv/
+venv/
+env/
+
+# Variáveis e senhas
+.env
+.env.*
+
+# VS Code
+.vscode/
+
+# Sistema
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Temporários
+*.tmp
+*.bak
