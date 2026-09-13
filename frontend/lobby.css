@@ -286,3 +286,85 @@
     letter-spacing: 0.08em;
     color: rgba(243, 245, 239, 0.42);
 }
+
+/* V5 - seleção de cor somente no lobby */
+.battle-skin-picker-block {
+    display: grid;
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.battle-skin-title {
+    color: rgba(243, 245, 239, 0.72);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.battle-skin-picker {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(78px, 1fr));
+    gap: 8px;
+}
+
+.battle-skin-option {
+    min-width: 0;
+    padding: 8px 6px 7px;
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    background: rgba(12, 18, 13, 0.9);
+    border: 1px solid rgba(164, 190, 154, 0.26);
+    border-radius: 8px;
+    color: rgba(243, 245, 239, 0.7);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.battle-skin-option:hover {
+    transform: translateY(-1px);
+    border-color: rgba(191, 232, 167, 0.52);
+}
+
+.battle-skin-option.selected {
+    border-color: rgba(191, 232, 167, 0.88);
+    background: rgba(54, 83, 49, 0.54);
+    color: #dff4d0;
+    box-shadow: inset 0 0 0 1px rgba(191, 232, 167, 0.18);
+}
+
+.battle-skin-option img {
+    width: 46px;
+    height: 64px;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.35));
+}
+
+.battle-skin-option span {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+}
+
+.battle-skin-picker-block small {
+    color: rgba(243, 245, 239, 0.46);
+    line-height: 1.35;
+}
+
+.battle-skin-picker-waiting {
+    width: min(520px, 100%);
+    margin: 18px auto 12px;
+}
+
+@media (max-width: 640px) {
+    .battle-skin-picker {
+        grid-template-columns: repeat(2, minmax(92px, 1fr));
+    }
+}
+
+.battle-loadout-state.is-ready {
+    border-color: rgba(86,255,139,.36);
+    background: rgba(86,255,139,.08);
+    color: #75ff9f;
+    font-weight: 700;
+}

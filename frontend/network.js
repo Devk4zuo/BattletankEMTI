@@ -148,6 +148,16 @@ class BattleTankNetwork extends EventTarget {
                 "loadout-saved",
             loadout_locked:
                 "loadout-locked",
+            programming_finalized:
+                "programming-finalized",
+            programming_error:
+                "programming-error",
+            programming_locked:
+                "programming-locked",
+            skin_saved:
+                "skin-saved",
+            skin_locked:
+                "skin-locked",
             countdown_started:
                 "countdown-started",
             match_start:
@@ -294,14 +304,21 @@ class BattleTankNetwork extends EventTarget {
 
     getLocalLoadout() {
         const defaults = {
+            skin: "azul",
             speed: 4.5,
             bulletSpeed: 13,
             fireRate: 260,
-            upgrades: {
-                motor2: false,
-                bullet2: false,
-                cannon2: false
-            }
+            bulletCount: 1,
+            bulletDamage: 25,
+            bulletRadius: 4,
+            bulletLifetime: 5,
+            bulletSpread: 6,
+            maxLife: 100,
+            damageReduction: 0,
+            regen: 0,
+            programmedFunctions: [],
+            programmingLanguage: null,
+            upgrades: {}
         };
 
         try {
@@ -376,6 +393,19 @@ class BattleTankNetwork extends EventTarget {
         );
     }
 
+    setTankSkin(
+        skin
+    ) {
+        return this.send(
+            {
+                type:
+                    "update_skin",
+                skin:
+                    String(skin || "azul")
+            }
+        );
+    }
+
     setReady(
         ready = true
     ) {
@@ -385,6 +415,16 @@ class BattleTankNetwork extends EventTarget {
                     "set_ready",
                 ready:
                     Boolean(ready)
+            }
+        );
+    }
+
+    finalizeProgramming(language, functions = []) {
+        return this.send(
+            {
+                type: "finalize_programming",
+                language: String(language || "").toLowerCase(),
+                functions: Array.isArray(functions) ? functions : []
             }
         );
     }

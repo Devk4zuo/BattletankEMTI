@@ -1,6 +1,6 @@
 // ==========================================================
 // BATTLE TANK EMTI - MÚSICA AUTOMÁTICA V3
-// Criado por: Professor André Kazuo Takaki
+// Criado por: Professor Kazuo
 // ==========================================================
 
 (() => {

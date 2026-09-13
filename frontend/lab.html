@@ -1,287 +1,162 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Battle Tank EMTI - Laboratório</title>
-
-    <link
-        rel="stylesheet"
-        href="lab.css"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Tank EMTI - Programação do Tanque</title>
+    <link rel="stylesheet" href="lab.css?v=20260913-6">
 </head>
-
 <body>
-
-    <main class="lab">
-
+    <main class="lab-shell">
         <header class="topbar">
-
             <div>
-
                 <h1>BATTLE TANK EMTI</h1>
-
-                <span>
-                    LABORATÓRIO DE ENGENHARIA
-                </span>
-
+                <span>PROGRAMAÇÃO DO TANQUE</span>
             </div>
-
-            <a
-                class="arena-button"
-                href="index.html"
-            >
-                IR PARA ARENA
-            </a>
-
+            <div class="topbar-right">
+                <div class="professor-credit">Professor Kazuo</div>
+                <div id="languageLockedBadge" class="language-locked-badge">LINGUAGEM: --</div>
+            </div>
         </header>
 
-
-        <section class="workspace">
-
-            <!-- PAINEL ESQUERDO -->
-
-            <aside class="tank-panel">
-
-                <h2>SEU TANQUE</h2>
+        <section class="lab-grid">
+            <aside class="panel tank-panel">
+                <div class="panel-heading">
+                    <h2>SEU TANQUE</h2>
+                    <span id="slotCounter" class="slot-counter">0 / 5 FUNÇÕES</span>
+                </div>
 
                 <div class="tank-preview">
-
-                    <img
-                        id="tankPreview"
-                        src="assets/tanks/tanque_azul.png"
-                        alt="Tanque"
-                    >
-
+                    <div class="tank-grid"></div>
+                    <img id="tankPreview" src="assets/tanks/tanque_azul.png" alt="Tanque do jogador">
                 </div>
 
-
-                <div class="stats">
-
-                    <div class="stat">
-
-                        <span>Motor</span>
-
-                        <strong id="speedLevel">
-                            MK-I
-                        </strong>
-
-                    </div>
-
-
-                    <div class="stat">
-
-                        <span>Velocidade</span>
-
-                        <strong id="speedValue">
-                            4.5
-                        </strong>
-
-                    </div>
-
-
-                    <div class="stat">
-
-                        <span>Projétil</span>
-
-                        <strong id="bulletLevel">
-                            MK-I
-                        </strong>
-
-                    </div>
-
-
-                    <div class="stat">
-
-                        <span>Vel. tiro</span>
-
-                        <strong id="bulletSpeedValue">
-                            13
-                        </strong>
-
-                    </div>
-
-
-                    <div class="stat">
-
-                        <span>Cadência</span>
-
-                        <strong id="fireRateValue">
-                            260 ms
-                        </strong>
-
-                    </div>
-
+                <div class="stats-grid">
+                    <div><small>VELOCIDADE</small><strong id="speedValue">4.5</strong></div>
+                    <div><small>VEL. TIRO</small><strong id="bulletSpeedValue">13</strong></div>
+                    <div><small>CADÊNCIA</small><strong id="fireRateValue">260 ms</strong></div>
+                    <div><small>PROJÉTEIS</small><strong id="bulletCountValue">1</strong></div>
+                    <div><small>DANO</small><strong id="damageValue">25</strong></div>
+                    <div><small>VIDA</small><strong id="maxLifeValue">100</strong></div>
+                    <div><small>DEFESA</small><strong id="reductionValue">0%</strong></div>
+                    <div><small>REGEN.</small><strong id="regenValue">0/s</strong></div>
                 </div>
 
-
-                <h3>UPGRADES</h3>
-
-                <div id="upgradeList">
-
-                    <div class="upgrade locked">
-                        🔒 Motor MK-II
-                    </div>
-
-                    <div class="upgrade locked">
-                        🔒 Munição de alta velocidade
-                    </div>
-
-                    <div class="upgrade locked">
-                        🔒 Canhão rápido
-                    </div>
-
+                <h3>FUNÇÕES ATIVAS</h3>
+                <div id="activeFunctions" class="active-functions">
+                    <p class="muted">Nenhuma função validada.</p>
                 </div>
-
             </aside>
 
-
-            <!-- CENTRO -->
-
-            <section class="code-area">
-
-                <div class="language-bar">
-
-                    <button
-                        id="javascriptButton"
-                        class="language active"
-                    >
-                        JavaScript
-                    </button>
-
-                    <button
-                        id="pythonButton"
-                        class="language"
-                    >
-                        Python
-                    </button>
-
-                </div>
-
-
-                <div class="challenge">
-
-                    <span class="challenge-number">
-                        DESAFIO 01
-                    </span>
-
-                    <h2>
-                        Sistema de potência do motor
-                    </h2>
-
-                    <p>
-                        Crie uma função que receba a potência
-                        atual do motor e retorne o dobro.
-                    </p>
-
-
-                    <div class="example">
-
-                        Entrada:
-
-                        <strong>
-                            10
-                        </strong>
-
-                        Resultado esperado:
-
-                        <strong>
-                            20
-                        </strong>
-
+            <section class="panel code-panel">
+                <div class="code-intro">
+                    <div>
+                        <small>PROGRAME ANTES DA BATALHA</small>
+                        <h2>Monte o programa do seu tanque</h2>
+                        <p>Escreva até <strong>5 funções permitidas</strong> no mesmo programa. Consulte o manual, valide o código e finalize sua preparação.</p>
                     </div>
-
+                    <div class="flow-badges">
+                        <span>1 ESCOLHA</span>
+                        <b>→</b>
+                        <span>2 PROGRAME</span>
+                        <b>→</b>
+                        <span>3 VALIDE</span>
+                        <b>→</b>
+                        <span>4 FINALIZE</span>
+                    </div>
                 </div>
 
-
-                <div class="editor-header">
-
-                    <span id="fileName">
-                        motor.js
-                    </span>
-
-                    <span>
-                        BattleTank Script
-                    </span>
-
+                <div class="editor-toolbar">
+                    <div>
+                        <span class="file-dot"></span>
+                        <strong id="fileName">tanque.js</strong>
+                    </div>
+                    <span>Ctrl + Enter = validar</span>
                 </div>
 
+                <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Editor do programa do tanque"></textarea>
 
-                <textarea
-                    id="codeEditor"
-                    spellcheck="false"
-                ></textarea>
-
-
-                <div class="actions">
-
-                    <button
-                        id="resetButton"
-                        class="secondary"
-                    >
-                        REINICIAR
-                    </button>
-
-                    <button
-                        id="testButton"
-                        class="primary"
-                    >
-                        EXECUTAR TESTES
-                    </button>
-
+                <div class="editor-actions">
+                    <button id="saveButton" class="secondary-button" type="button">SALVAR CÓDIGO</button>
+                    <button id="clearButton" class="secondary-button" type="button">LIMPAR EDITOR</button>
+                    <button id="validateButton" class="validate-button" type="button">VALIDAR PROGRAMA</button>
                 </div>
 
+                <div class="finalize-zone">
+                    <div>
+                        <small>QUANDO TERMINAR</small>
+                        <strong>Após finalizar, você não poderá voltar ao laboratório nesta partida.</strong>
+                    </div>
+                    <button id="finalizeButton" class="finalize-button" type="button">FINALIZAR PROGRAMAÇÃO</button>
+                </div>
             </section>
 
+            <aside class="panel catalog-panel">
+                <div class="panel-heading">
+                    <h2>FUNÇÕES PERMITIDAS</h2>
+                    <span>30 DISPONÍVEIS</span>
+                </div>
+                <p class="catalog-note">O nome da função deve ser exatamente o indicado. O manual explicará como programar cada uma.</p>
+                <div id="functionCatalog" class="function-catalog"></div>
 
-            <!-- PAINEL DIREITO -->
-
-            <aside class="console-panel">
-
-                <h2>TESTES</h2>
-
-                <div
-                    id="testResults"
-                    class="test-results"
-                >
-
-                    <p class="waiting">
-                        Aguardando execução...
-                    </p>
-
+                <div class="results-heading">
+                    <h2>VALIDAÇÃO</h2>
+                    <span id="validationStatus">AGUARDANDO</span>
+                </div>
+                <div id="validationResults" class="validation-results">
+                    <p class="muted">Escreva seu programa e clique em VALIDAR PROGRAMA.</p>
                 </div>
 
-
-                <h2>CONSOLE</h2>
-
-                <div
-                    id="console"
-                    class="console"
-                >
-
-                    BattleTank Engine v0.1
-                    <br>
-                    Sistema pronto.
-
+                <div class="console-heading">CONSOLE</div>
+                <div id="console" class="console" aria-live="polite">
+                    <div>&gt; Battle Tank Engine pronto.</div>
                 </div>
-
             </aside>
-
         </section>
-
     </main>
 
+    <div id="languageModal" class="modal-backdrop" hidden>
+        <div class="modal language-modal">
+            <div class="modal-kicker">ESCOLHA A LINGUAGEM</div>
+            <h2>Qual linguagem você usará nesta partida?</h2>
+            <p>Depois de confirmar, a linguagem ficará bloqueada até o fim da partida.</p>
+            <div class="language-choice-grid">
+                <button id="chooseJavascript" class="language-choice js-choice" type="button">
+                    <span>JS</span>
+                    <strong>JavaScript</strong>
+                    <small>Programação executada em Web Worker</small>
+                </button>
+                <button id="choosePython" class="language-choice py-choice" type="button">
+                    <span>PY</span>
+                    <strong>Python</strong>
+                    <small id="pythonChoiceStatus">Carregando Python...</small>
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <script src="lab.js"></script>
+    <div id="confirmModal" class="modal-backdrop" hidden>
+        <div class="modal confirm-modal">
+            <div class="modal-kicker">CONFIRMAR FINALIZAÇÃO</div>
+            <h2>Seu tanque será bloqueado para esta batalha.</h2>
+            <div id="finalSummary" class="final-summary"></div>
+            <p class="warning-text">Depois de finalizar, não será possível alterar código, linguagem ou voltar ao laboratório.</p>
+            <div class="confirm-actions">
+                <button id="cancelFinalize" class="secondary-button" type="button">CANCELAR</button>
+                <button id="confirmFinalize" class="finalize-button" type="button">FINALIZAR AGORA</button>
+            </div>
+        </div>
+    </div>
 
+    <div id="blockedOverlay" class="blocked-overlay" hidden>
+        <div class="blocked-card">
+            <div class="modal-kicker">LABORATÓRIO BLOQUEADO</div>
+            <h2 id="blockedTitle">Programação encerrada</h2>
+            <p id="blockedMessage">A programação deste tanque já foi finalizada.</p>
+            <a href="index.html" class="finalize-button blocked-return">VOLTAR AO JOGO</a>
+        </div>
+    </div>
+
+    <script src="lab.js?v=6"></script>
 </body>
-
 </html>

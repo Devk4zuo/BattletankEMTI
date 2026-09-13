@@ -245,6 +245,8 @@ function loadPlayerProgress() {
 
     const defaultProgress = {
 
+        skin: "azul",
+
         speed: 4.5,
 
         bulletSpeed: 13,
@@ -908,7 +910,7 @@ let localPlayer = null;
 //
 // POR ENQUANTO:
 //
-// COMADI
+// ALUNO
 // +
 // BOT 01 até BOT 19
 //
@@ -1142,7 +1144,7 @@ function createParticipants() {
             "player_local",
 
         name:
-            "COMADI",
+            "ALUNO",
 
         type:
             "human",
@@ -1178,7 +1180,7 @@ function createParticipants() {
             0,
 
         skin:
-            "azul",
+            playerProgress.skin || "azul",
 
         life:
             100,
@@ -2451,28 +2453,6 @@ window.addEventListener("keydown", event => {
         event.preventDefault();
     }
 
-
-    // skins
-
-    if (event.key === "1") {
-        localPlayer.skin = "azul";
-        showGameMessage("TANQUE AZUL");
-    }
-
-    if (event.key === "2") {
-        localPlayer.skin = "vermelho";
-        showGameMessage("TANQUE VERMELHO");
-    }
-
-    if (event.key === "3") {
-        localPlayer.skin = "bege";
-        showGameMessage("TANQUE BEGE");
-    }
-
-    if (event.key === "4") {
-        localPlayer.skin = "escuro";
-        showGameMessage("TANQUE ESCURO");
-    }
 
 
     // hitboxes

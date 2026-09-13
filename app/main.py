@@ -20,7 +20,7 @@ if not FRONTEND_DIR.exists():
 
 app = FastAPI(
     title="Battle Tank EMTI Server",
-    version="0.8.0",
+    version="1.0.0",
 )
 
 MAX_PARTICIPANTS = 20
@@ -32,6 +32,45 @@ WORLD_HEIGHT = 3456
 
 TERRAINS = ["mapa1", "mapa2"]
 TANK_SKINS = ["azul", "vermelho", "bege", "escuro"]
+
+MAX_PROGRAM_FUNCTIONS = 5
+PROGRAMMING_LANGUAGES = {"javascript", "python"}
+
+# Funções permitidas no laboratório. O servidor não executa o código do aluno;
+# ele recebe somente os IDs das funções que o laboratório validou e deriva
+# o loadout oficial com limites próprios.
+PROGRAM_FUNCTION_EFFECTS: dict[str, dict[str, float]] = {
+    "motor2": {"speed": 0.40},
+    "turbo": {"speed": 0.55},
+    "tracao": {"speed": 0.25},
+    "peso": {"speed": 0.30},
+    "eficiencia": {"speed": 0.20},
+    "proteger_motor": {"speed": 0.15},
+    "bullet2": {"bulletSpeed": 4.0},
+    "propulsao": {"bulletSpeed": 2.0},
+    "municao_leve": {"bulletSpeed": 1.5},
+    "pressao": {"bulletSpeed": 1.0},
+    "cannon2": {"fireRate": -80.0},
+    "recarga_rapida": {"fireRate": -45.0},
+    "gatilho": {"fireRate": -30.0},
+    "sincronismo": {"fireRate": -20.0},
+    "tiro_duplo": {"bulletCount": 2.0},
+    "tiro_triplo": {"bulletCount": 3.0},
+    "dano": {"bulletDamage": 10.0},
+    "penetracao": {"bulletDamage": 7.0},
+    "impacto": {"bulletDamage": 5.0},
+    "explosiva": {"bulletDamage": 4.0, "bulletRadius": 1.0},
+    "calibre": {"bulletRadius": 2.0},
+    "alcance": {"bulletLifetime": 2.0},
+    "precisao": {"bulletSpread": 3.0},
+    "estabilizador": {"bulletSpread": 2.0},
+    "blindagem": {"maxLife": 25.0},
+    "blindagem2": {"maxLife": 15.0},
+    "escudo": {"damageReduction": 0.15},
+    "amortecimento": {"damageReduction": 0.10},
+    "regeneracao": {"regen": 1.0},
+    "emergencia": {"maxLife": 10.0, "regen": 0.5},
+}
 
 SPAWN_POINTS = [
     {"x": 450, "y": 450},
@@ -176,21 +215,114 @@ def clamp(value: Any, minimum: float, maximum: float, default: float) -> float:
     return max(minimum, min(maximum, number))
 
 
-def sanitize_loadout(value: Any) -> dict[str, Any]:
-    data = value if isinstance(value, dict) else {}
-    upgrades = data.get("upgrades") if isinstance(data.get("upgrades"), dict) else {}
+def base_loadout(skin: str = "azul") -> dict[str, Any]:
+    safe_skin = str(skin or "azul").strip().lower()
+    if safe_skin not in TANK_SKINS:
+        safe_skin = "azul"
 
     return {
-        "speed": round(clamp(data.get("speed"), 3.5, 6.5, 4.5), 2),
-        "bulletSpeed": round(clamp(data.get("bulletSpeed"), 9.0, 20.0, 13.0), 2),
-        "fireRate": int(clamp(data.get("fireRate"), 120, 500, 260)),
-        "upgrades": {
-            "motor2": bool(upgrades.get("motor2", False)),
-            "bullet2": bool(upgrades.get("bullet2", False)),
-            "cannon2": bool(upgrades.get("cannon2", False)),
-        },
+        "skin": safe_skin,
+        "speed": 4.5,
+        "bulletSpeed": 13.0,
+        "fireRate": 260,
+        "bulletCount": 1,
+        "bulletDamage": 25,
+        "bulletRadius": 4.0,
+        "bulletLifetime": 5.0,
+        "bulletSpread": 6.0,
+        "maxLife": 100,
+        "damageReduction": 0.0,
+        "regen": 0.0,
+        "programmedFunctions": [],
+        "programmingLanguage": None,
+        "upgrades": {},
     }
 
+
+def sanitize_programmed_functions(value: Any) -> list[str]:
+    raw = value if isinstance(value, list) else []
+    result: list[str] = []
+
+    for item in raw:
+        function_id = str(item or "").strip()
+        if function_id not in PROGRAM_FUNCTION_EFFECTS:
+            continue
+        if function_id in result:
+            continue
+        result.append(function_id)
+        if len(result) >= MAX_PROGRAM_FUNCTIONS:
+            break
+
+    return result
+
+
+def derive_loadout_from_functions(
+    skin: str,
+    function_ids: list[str],
+    language: str | None,
+) -> dict[str, Any]:
+    loadout = base_loadout(skin)
+    selected = sanitize_programmed_functions(function_ids)
+    explicit_spread: float | None = None
+
+    for function_id in selected:
+        effect = PROGRAM_FUNCTION_EFFECTS.get(function_id, {})
+        loadout["upgrades"][function_id] = True
+
+        if "speed" in effect:
+            loadout["speed"] += float(effect["speed"])
+        if "bulletSpeed" in effect:
+            loadout["bulletSpeed"] += float(effect["bulletSpeed"])
+        if "fireRate" in effect:
+            loadout["fireRate"] += float(effect["fireRate"])
+        if "bulletCount" in effect:
+            loadout["bulletCount"] = max(
+                int(loadout["bulletCount"]),
+                int(effect["bulletCount"]),
+            )
+        if "bulletDamage" in effect:
+            loadout["bulletDamage"] += int(effect["bulletDamage"])
+        if "bulletRadius" in effect:
+            loadout["bulletRadius"] += float(effect["bulletRadius"])
+        if "bulletLifetime" in effect:
+            loadout["bulletLifetime"] += float(effect["bulletLifetime"])
+        if "bulletSpread" in effect:
+            value = float(effect["bulletSpread"])
+            explicit_spread = value if explicit_spread is None else min(explicit_spread, value)
+        if "maxLife" in effect:
+            loadout["maxLife"] += int(effect["maxLife"])
+        if "damageReduction" in effect:
+            loadout["damageReduction"] += float(effect["damageReduction"])
+        if "regen" in effect:
+            loadout["regen"] += float(effect["regen"])
+
+    loadout["speed"] = round(clamp(loadout["speed"], 3.5, 6.5, 4.5), 2)
+    loadout["bulletSpeed"] = round(clamp(loadout["bulletSpeed"], 9.0, 20.0, 13.0), 2)
+    loadout["fireRate"] = int(clamp(loadout["fireRate"], 120, 500, 260))
+    loadout["bulletCount"] = int(clamp(loadout["bulletCount"], 1, 3, 1))
+    loadout["bulletDamage"] = int(clamp(loadout["bulletDamage"], 15, 55, 25))
+    loadout["bulletRadius"] = round(clamp(loadout["bulletRadius"], 3.0, 8.0, 4.0), 2)
+    loadout["bulletLifetime"] = round(clamp(loadout["bulletLifetime"], 3.0, 8.0, 5.0), 2)
+    loadout["bulletSpread"] = round(
+        clamp(explicit_spread if explicit_spread is not None else 6.0, 1.5, 10.0, 6.0),
+        2,
+    )
+    loadout["maxLife"] = int(clamp(loadout["maxLife"], 80, 160, 100))
+    loadout["damageReduction"] = round(clamp(loadout["damageReduction"], 0.0, 0.35, 0.0), 3)
+    loadout["regen"] = round(clamp(loadout["regen"], 0.0, 2.0, 0.0), 2)
+    loadout["programmedFunctions"] = selected
+    loadout["programmingLanguage"] = language if language in PROGRAMMING_LANGUAGES else None
+    return loadout
+
+
+def sanitize_loadout(value: Any) -> dict[str, Any]:
+    data = value if isinstance(value, dict) else {}
+    skin = str(data.get("skin") or "azul").strip().lower()
+    language = str(data.get("programmingLanguage") or "").strip().lower()
+    if language not in PROGRAMMING_LANGUAGES:
+        language = None
+    functions = sanitize_programmed_functions(data.get("programmedFunctions"))
+    return derive_loadout_from_functions(skin, functions, language)
 
 def upgrade_count(loadout: dict[str, Any]) -> int:
     upgrades = loadout.get("upgrades", {})
@@ -234,6 +366,9 @@ def room_public_state(room: dict[str, Any]) -> dict[str, Any]:
             "name": player["name"],
             "joined_order": player["joined_order"],
             "ready": bool(player.get("ready", False)),
+            "finalized": bool(player.get("programming_finalized", False)),
+            "programming_language": player.get("programming_language"),
+            "function_count": len(player.get("programmed_functions", [])),
             "upgrade_count": upgrade_count(player.get("loadout", {})),
         }
         for player in room["players"]
@@ -408,12 +543,22 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
                 "y": float(spawns[index]["y"]),
                 "angle": 0.0,
                 "alive": True,
-                "skin": TANK_SKINS[index % len(TANK_SKINS)],
+                "skin": loadout["skin"],
                 "speed": loadout["speed"],
                 "bulletSpeed": loadout["bulletSpeed"],
                 "fireRate": loadout["fireRate"],
+                "bulletCount": loadout["bulletCount"],
+                "bulletDamage": loadout["bulletDamage"],
+                "bulletRadius": loadout["bulletRadius"],
+                "bulletLifetime": loadout["bulletLifetime"],
+                "bulletSpread": loadout["bulletSpread"],
+                "maxLife": loadout["maxLife"],
+                "damageReduction": loadout["damageReduction"],
+                "regen": loadout["regen"],
+                "programmedFunctions": loadout["programmedFunctions"],
+                "programmingLanguage": loadout["programmingLanguage"],
                 "upgrades": loadout["upgrades"],
-                "life": 100,
+                "life": float(loadout["maxLife"]),
                 "kills": 0,
                 "lastShotAt": -999.0,
             }
@@ -440,7 +585,15 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
                 "speed": round(3.2 + rng.random() * 0.8, 3),
                 "bulletSpeed": round(10.5 + rng.random() * 2.5, 3),
                 "fireRate": int(700 + rng.random() * 450),
-                "life": 100,
+                "bulletCount": 1,
+                "bulletDamage": BULLET_DAMAGE,
+                "bulletRadius": BULLET_RADIUS,
+                "bulletLifetime": BULLET_MAX_LIFETIME_SECONDS,
+                "bulletSpread": 6.0,
+                "maxLife": 100,
+                "damageReduction": 0.0,
+                "regen": 0.0,
+                "life": 100.0,
                 "kills": 0,
                 "lastShotAt": -999.0,
                 "ai": {
@@ -718,15 +871,7 @@ def spawn_server_bullet(
     shot_angle: float,
     now: float,
 ) -> bool:
-    """
-    Cria um projétil oficial do servidor.
-
-    O servidor aplica:
-    - cadência;
-    - velocidade;
-    - posição inicial;
-    - dano.
-    """
+    """Cria um ou mais projéteis oficiais do servidor."""
     if not shooter.get("alive", True):
         return False
 
@@ -736,41 +881,53 @@ def spawn_server_bullet(
     )
 
     last_shot = float(shooter.get("lastShotAt", -999.0))
-
     if now - last_shot < fire_rate_seconds:
         return False
-
-    shooter["lastShotAt"] = now
 
     match = room.get("match")
     if not match:
         return False
 
+    shooter["lastShotAt"] = now
+
+    bullet_count = int(clamp(shooter.get("bulletCount"), 1, 3, 1))
+    spread_degrees = float(clamp(shooter.get("bulletSpread"), 1.5, 10.0, 6.0))
+    spread_radians = math.radians(spread_degrees)
+
+    if bullet_count <= 1:
+        angle_offsets = [0.0]
+    elif bullet_count == 2:
+        angle_offsets = [-spread_radians / 2.0, spread_radians / 2.0]
+    else:
+        angle_offsets = [-spread_radians, 0.0, spread_radians]
+
     barrel_length = 46.0
 
-    start_x = float(shooter.get("x", 0)) + math.cos(shot_angle) * barrel_length
-    start_y = float(shooter.get("y", 0)) + math.sin(shot_angle) * barrel_length
+    for angle_offset in angle_offsets:
+        bullet_angle = float(shot_angle) + angle_offset
+        start_x = float(shooter.get("x", 0)) + math.cos(bullet_angle) * barrel_length
+        start_y = float(shooter.get("y", 0)) + math.sin(bullet_angle) * barrel_length
 
-    match["bullet_counter"] = int(match.get("bullet_counter", 0)) + 1
-    bullet_id = f"{match.get('match_id', 'match')}_{match['bullet_counter']}"
+        match["bullet_counter"] = int(match.get("bullet_counter", 0)) + 1
+        bullet_id = f"{match.get('match_id', 'match')}_{match['bullet_counter']}"
 
-    match.setdefault("bullets", []).append(
-        {
-            "id": bullet_id,
-            "owner_id": shooter.get("id"),
-            "x": start_x,
-            "y": start_y,
-            "angle": float(shot_angle),
-            "speed": float(shooter.get("bulletSpeed", 13.0))
-            * BULLET_SPEED_TO_PIXELS_PER_SECOND,
-            "radius": BULLET_RADIUS,
-            "damage": BULLET_DAMAGE,
-            "created_at": now,
-        }
-    )
+        match.setdefault("bullets", []).append(
+            {
+                "id": bullet_id,
+                "owner_id": shooter.get("id"),
+                "x": start_x,
+                "y": start_y,
+                "angle": bullet_angle,
+                "speed": float(shooter.get("bulletSpeed", 13.0))
+                * BULLET_SPEED_TO_PIXELS_PER_SECOND,
+                "radius": float(clamp(shooter.get("bulletRadius"), 3.0, 8.0, BULLET_RADIUS)),
+                "damage": int(clamp(shooter.get("bulletDamage"), 15, 55, BULLET_DAMAGE)),
+                "lifetime": float(clamp(shooter.get("bulletLifetime"), 3.0, 8.0, BULLET_MAX_LIFETIME_SECONDS)),
+                "created_at": now,
+            }
+        )
 
     return True
-
 
 def bullet_hits_barrier(
     match: dict[str, Any],
@@ -823,7 +980,7 @@ def update_server_bullets(
             or x > WORLD_WIDTH
             or y < 0
             or y > WORLD_HEIGHT
-            or now - float(bullet.get("created_at", now)) > BULLET_MAX_LIFETIME_SECONDS
+            or now - float(bullet.get("created_at", now)) > float(bullet.get("lifetime", BULLET_MAX_LIFETIME_SECONDS))
         ):
             bullets.pop(index)
             continue
@@ -847,17 +1004,20 @@ def update_server_bullets(
                 float(participant.get("y", 0)) - y,
             )
 
-            if distance <= participant_collision_radius(participant) + BULLET_RADIUS:
+            if distance <= participant_collision_radius(participant) + float(bullet.get("radius", BULLET_RADIUS)):
                 hit_participant = participant
                 break
 
         if hit_participant is None:
             continue
 
+        raw_damage = float(bullet.get("damage", BULLET_DAMAGE))
+        reduction = float(clamp(hit_participant.get("damageReduction"), 0.0, 0.35, 0.0))
+        effective_damage = max(1.0, raw_damage * (1.0 - reduction))
         hit_participant["life"] = max(
-            0,
-            int(hit_participant.get("life", 100))
-            - int(bullet.get("damage", BULLET_DAMAGE)),
+            0.0,
+            float(hit_participant.get("life", hit_participant.get("maxLife", 100)))
+            - effective_damage,
         )
 
         if hit_participant["life"] <= 0:
@@ -1115,7 +1275,8 @@ def match_state_payload(room: dict[str, Any]) -> dict[str, Any]:
             "y": round(float(participant.get("y", 0)), 2),
             "angle": round(float(participant.get("angle", 0)), 5),
             "alive": bool(participant.get("alive", True)),
-            "life": int(participant.get("life", 100)),
+            "life": int(round(float(participant.get("life", 100)))),
+            "maxLife": int(participant.get("maxLife", 100)),
             "kills": int(participant.get("kills", 0)),
         }
         for participant in match.get("participants", [])
@@ -1258,6 +1419,17 @@ async def match_loop(
             now,
         )
 
+        # Regeneração programada pelo aluno, limitada pelo máximo de vida.
+        for participant in match.get("participants", []):
+            if not participant.get("alive", True):
+                continue
+            regen = float(clamp(participant.get("regen"), 0.0, 2.0, 0.0))
+            if regen <= 0:
+                continue
+            max_life = float(participant.get("maxLife", 100))
+            current_life = float(participant.get("life", max_life))
+            participant["life"] = min(max_life, current_life + regen * dt)
+
         survivors = alive_participants(match)
 
         if len(survivors) <= 1:
@@ -1389,7 +1561,12 @@ async def start_programming_phase(room_code: str) -> None:
     room["countdown_ends_at"] = None
 
     for player in room["players"]:
+        current_skin = sanitize_loadout(player.get("loadout"))["skin"]
+        player["loadout"] = base_loadout(current_skin)
         player["ready"] = False
+        player["programming_finalized"] = False
+        player["programming_language"] = None
+        player["programmed_functions"] = []
 
     await manager.broadcast_to_clients(
         get_room_client_ids(room),
@@ -1552,7 +1729,7 @@ async def healthz() -> JSONResponse:
             "ok": True,
             "game": "Battle Tank EMTI",
             "server": "online",
-            "version": "0.6.0",
+            "version": "0.9.0",
         }
     )
 
@@ -1640,7 +1817,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             if message_type == "join_room":
                 room_code = str(message.get("room_code") or "").strip()
                 player_name = sanitize_player_name(message.get("player_name"))
-                loadout = sanitize_loadout(message.get("loadout"))
+                requested_skin = sanitize_loadout(message.get("loadout"))["skin"]
+                loadout = base_loadout(requested_skin)
 
                 if not player_name:
                     await manager.send_json(
@@ -1723,11 +1901,19 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                             "joined_order": room["join_counter"],
                             "loadout": loadout,
                             "ready": False,
+                            "programming_finalized": False,
+                            "programming_language": None,
+                            "programmed_functions": [],
                         }
                     )
                 else:
                     existing_player["name"] = player_name
-                    existing_player["loadout"] = loadout
+                    if room["status"] == "lobby":
+                        existing_player["loadout"] = loadout
+                        existing_player["ready"] = False
+                        existing_player["programming_finalized"] = False
+                        existing_player["programming_language"] = None
+                        existing_player["programmed_functions"] = []
 
                 client_rooms[client_id] = room_code
                 client_roles[client_id] = "player"
@@ -1742,7 +1928,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                         "room_status": room["status"],
                         "programming_ends_at": room.get("programming_ends_at"),
                         "server_now": time.time(),
-                        "validated_loadout": loadout,
+                        "validated_loadout": (find_player(room, client_id) or {}).get("loadout", loadout),
+                        "programming_finalized": bool((find_player(room, client_id) or {}).get("programming_finalized", False)),
+                        "programming_language": (find_player(room, client_id) or {}).get("programming_language"),
                     },
                 )
 
@@ -1790,6 +1978,49 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 await start_programming_phase(room_code)
                 continue
 
+            if message_type == "update_skin":
+                room_code = client_rooms.get(client_id)
+                room = rooms.get(room_code or "")
+
+                if (
+                    room is None
+                    or client_roles.get(client_id) != "player"
+                ):
+                    continue
+
+                if room["status"] != "lobby":
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "skin_locked",
+                            "message": "A cor do tanque só pode ser alterada no lobby, antes da programação.",
+                        },
+                    )
+                    continue
+
+                player = find_player(room, client_id)
+                if player is None:
+                    continue
+
+                requested_skin = str(message.get("skin") or "").strip().lower()
+                if requested_skin not in TANK_SKINS:
+                    requested_skin = "azul"
+
+                current_loadout = sanitize_loadout(player.get("loadout"))
+                current_loadout["skin"] = requested_skin
+                player["loadout"] = current_loadout
+
+                await manager.send_json(
+                    client_id,
+                    {
+                        "type": "skin_saved",
+                        "skin": requested_skin,
+                    },
+                )
+
+                await broadcast_room_state(room_code)
+                continue
+
             if message_type == "update_loadout":
                 room_code = client_rooms.get(client_id)
                 room = rooms.get(room_code or "")
@@ -1814,7 +2045,22 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 if player is None:
                     continue
 
-                player["loadout"] = sanitize_loadout(message.get("loadout"))
+                if player.get("programming_finalized", False):
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "loadout_locked",
+                            "message": "A programação já foi finalizada para esta partida.",
+                        },
+                    )
+                    continue
+
+                current_loadout = sanitize_loadout(player.get("loadout"))
+                updated_loadout = sanitize_loadout(message.get("loadout"))
+
+                # A cor é escolhida no lobby e fica bloqueada durante programação/batalha.
+                updated_loadout["skin"] = current_loadout["skin"]
+                player["loadout"] = updated_loadout
 
                 if player.get("ready"):
                     player["ready"] = False
@@ -1825,6 +2071,105 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                         "type": "loadout_saved",
                         "loadout": player["loadout"],
                         "upgrade_count": upgrade_count(player["loadout"]),
+                    },
+                )
+
+                await broadcast_room_state(room_code)
+                continue
+
+            if message_type == "finalize_programming":
+                room_code = client_rooms.get(client_id)
+                room = rooms.get(room_code or "")
+
+                if (
+                    room is None
+                    or client_roles.get(client_id) != "player"
+                    or room["status"] != "programming"
+                ):
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "programming_locked",
+                            "message": "A fase de programação não está disponível.",
+                        },
+                    )
+                    continue
+
+                player = find_player(room, client_id)
+                if player is None:
+                    continue
+
+                if player.get("programming_finalized", False):
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "programming_finalized",
+                            "room_code": room_code,
+                            "language": player.get("programming_language"),
+                            "function_count": len(player.get("programmed_functions", [])),
+                            "functions": player.get("programmed_functions", []),
+                            "loadout": player.get("loadout", {}),
+                        },
+                    )
+                    continue
+
+                language = str(message.get("language") or "").strip().lower()
+                if language not in PROGRAMMING_LANGUAGES:
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "programming_error",
+                            "message": "Escolha JavaScript ou Python antes de finalizar.",
+                        },
+                    )
+                    continue
+
+                raw_functions = message.get("functions")
+                if not isinstance(raw_functions, list):
+                    raw_functions = []
+
+                unique_valid = []
+                invalid_found = False
+                for raw_id in raw_functions:
+                    function_id = str(raw_id or "").strip()
+                    if function_id not in PROGRAM_FUNCTION_EFFECTS:
+                        invalid_found = True
+                        continue
+                    if function_id not in unique_valid:
+                        unique_valid.append(function_id)
+
+                if invalid_found or len(unique_valid) > MAX_PROGRAM_FUNCTIONS:
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "programming_error",
+                            "message": f"Use no máximo {MAX_PROGRAM_FUNCTIONS} funções permitidas.",
+                        },
+                    )
+                    continue
+
+                current_skin = sanitize_loadout(player.get("loadout"))["skin"]
+                official_loadout = derive_loadout_from_functions(
+                    current_skin,
+                    unique_valid,
+                    language,
+                )
+
+                player["loadout"] = official_loadout
+                player["programming_language"] = language
+                player["programmed_functions"] = list(unique_valid)
+                player["programming_finalized"] = True
+                player["ready"] = True
+
+                await manager.send_json(
+                    client_id,
+                    {
+                        "type": "programming_finalized",
+                        "room_code": room_code,
+                        "language": language,
+                        "function_count": len(unique_valid),
+                        "functions": unique_valid,
+                        "loadout": official_loadout,
                     },
                 )
 
@@ -1844,6 +2189,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
                 player = find_player(room, client_id)
                 if player is None:
+                    continue
+
+                if player.get("programming_finalized", False):
+                    player["ready"] = True
+                    await broadcast_room_state(room_code)
                     continue
 
                 player["ready"] = bool(message.get("ready", True))

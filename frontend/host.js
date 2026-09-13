@@ -230,7 +230,7 @@
                 detail.bot_count_if_started;
 
             readySummary.textContent =
-                `${detail.ready_count} pronto(s)`;
+                `${detail.ready_count} finalizado(s)`;
 
             renderPlayers(
                 detail.players,
@@ -607,15 +607,15 @@
                                 </div>
 
                                 <div class="player-meta">
-                                    ${player.upgrade_count} upgrade(s)
+                                    ${Number(player.function_count || 0)} função(ões)
                                 </div>
                             </div>
 
                             ${
                                 status === "programming"
                                     ? `
-                                        <div class="player-status ${player.ready ? "ready" : ""}">
-                                            ${player.ready ? "PRONTO" : "PROGRAMANDO"}
+                                        <div class="player-status ${player.finalized ? "ready" : ""}">
+                                            ${player.finalized ? "FINALIZADO" : "PROGRAMANDO"}
                                         </div>
                                     `
                                     : ""

@@ -13,13 +13,26 @@
     let roomCodeElement = null;
     let programmingTimerElement = null;
     let programmingStateElement = null;
+    let programmingKickerElement = null;
+    let programmingTitleElement = null;
     let readyButton = null;
+    let openLabLink = null;
+    let programmingSummaryElement = null;
     let countdownValue = null;
+    let skinStatusElement = null;
+
+    const LAB_RETURN_KEY = "battleTankLabReturn";
+    const PROGRAM_ACCESS_KEY = "battleTankProgrammingAccess";
+    const PLAYER_STORAGE_KEY = "battleTankPlayer";
+    const VALID_SKINS = ["azul", "vermelho", "bege", "escuro"];
+    let pendingReadyAfterLab = false;
 
     let playerName = "";
     let roomCode = "";
     let joined = false;
     let currentReady = false;
+    let currentFinalized = false;
+    let programmingSessionInitialized = false;
 
     let programmingEndsAt = null;
     let countdownEndsAt = null;
@@ -27,6 +40,79 @@
     let clockTimer = null;
     let loadoutSyncTimer = null;
     let lastLoadoutSignature = "";
+
+    function getLocalSkin() {
+        try {
+            const data = JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY) || "{}");
+            return VALID_SKINS.includes(data.skin) ? data.skin : "azul";
+        }
+        catch (_error) {
+            return "azul";
+        }
+    }
+
+    function saveLocalSkin(skin) {
+        const safeSkin = VALID_SKINS.includes(skin) ? skin : "azul";
+        let data = {};
+
+        try {
+            data = JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY) || "{}") || {};
+        }
+        catch (_error) {
+            data = {};
+        }
+
+        data.skin = safeSkin;
+        localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(data));
+        updateSkinButtons();
+        return safeSkin;
+    }
+
+    function resetLocalProgramLoadout() {
+        const skin = getLocalSkin();
+        const base = {
+            skin,
+            speed: 4.5,
+            bulletSpeed: 13,
+            fireRate: 260,
+            bulletCount: 1,
+            bulletDamage: 25,
+            bulletRadius: 4,
+            bulletLifetime: 5,
+            bulletSpread: 6,
+            maxLife: 100,
+            damageReduction: 0,
+            regen: 0,
+            programmedFunctions: [],
+            programmingLanguage: null,
+            upgrades: {},
+        };
+        localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(base));
+    }
+
+    function updateSkinButtons() {
+        const selected = getLocalSkin();
+        document.querySelectorAll("[data-tank-skin]").forEach((button) => {
+            button.classList.toggle("selected", button.dataset.tankSkin === selected);
+            button.setAttribute("aria-pressed", button.dataset.tankSkin === selected ? "true" : "false");
+        });
+    }
+
+    function skinLabel(skin) {
+        return ({ azul: "Azul", vermelho: "Vermelho", bege: "Bege", escuro: "Escuro" })[skin] || "Azul";
+    }
+
+    function selectLobbySkin(skin) {
+        const safeSkin = saveLocalSkin(skin);
+
+        if (skinStatusElement) {
+            skinStatusElement.textContent = `Cor selecionada: ${skinLabel(safeSkin)}. Durante a batalha ela ficará bloqueada.`;
+        }
+
+        if (joined && !waitingPanel.hidden && window.battleTankNetwork.connected) {
+            window.battleTankNetwork.setTankSkin(safeSkin);
+        }
+    }
 
     function createLobby() {
         overlay =
@@ -66,15 +152,6 @@
                             START
                         </button>
 
-                        <a
-                            class="battle-secondary-button"
-                            href="lab.html"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            LABORATÓRIO LIVRE
-                        </a>
-
                         <button
                             id="battleOpenHelp"
                             class="battle-secondary-button"
@@ -89,7 +166,7 @@
                     </div>
 
                     <div class="battle-creator-credit">
-                        Criado por: Professor André Kazuo Takaki
+                        Criado por: Professor Kazuo
                     </div>
                 </section>
 
@@ -137,7 +214,7 @@
                                 type="text"
                                 maxlength="20"
                                 autocomplete="off"
-                                placeholder="Ex.: André"
+                                placeholder="Ex.: Ana"
                                 required
                             >
                         </label>
@@ -156,6 +233,29 @@
                                 required
                             >
                         </label>
+
+                        <div class="battle-skin-picker-block">
+                            <span class="battle-skin-title">COR DO TANQUE</span>
+                            <div class="battle-skin-picker" aria-label="Escolha a cor do tanque">
+                                <button type="button" class="battle-skin-option" data-tank-skin="azul" title="Azul">
+                                    <img src="assets/tanks/tanque_azul.png" alt="Tanque azul">
+                                    <span>AZUL</span>
+                                </button>
+                                <button type="button" class="battle-skin-option" data-tank-skin="vermelho" title="Vermelho">
+                                    <img src="assets/tanks/tanque_vermelho.png" alt="Tanque vermelho">
+                                    <span>VERMELHO</span>
+                                </button>
+                                <button type="button" class="battle-skin-option" data-tank-skin="bege" title="Bege">
+                                    <img src="assets/tanks/tanque_bege.png" alt="Tanque bege">
+                                    <span>BEGE</span>
+                                </button>
+                                <button type="button" class="battle-skin-option" data-tank-skin="escuro" title="Escuro">
+                                    <img src="assets/tanks/tanque_escuro.png" alt="Tanque escuro">
+                                    <span>ESCURO</span>
+                                </button>
+                            </div>
+                            <small>A cor fica bloqueada quando a fase de programação começa.</small>
+                        </div>
 
                         <button
                             type="submit"
@@ -205,7 +305,7 @@
 
                         <div>
                             <strong>Objetivo</strong>
-                            <span>Sobreviver e usar bem os upgrades conquistados programando</span>
+                            <span>Sobreviver e usar bem as funções programadas no tanque</span>
                         </div>
                     </div>
                 </section>
@@ -234,6 +334,29 @@
                         Quando a preparação começar, você terá 5 minutos para programar seu tanque.
                     </p>
 
+                    <div class="battle-skin-picker-block battle-skin-picker-waiting">
+                        <span class="battle-skin-title">ESCOLHA A COR DO SEU TANQUE</span>
+                        <div class="battle-skin-picker" aria-label="Escolha a cor do tanque no lobby">
+                            <button type="button" class="battle-skin-option" data-tank-skin="azul" title="Azul">
+                                <img src="assets/tanks/tanque_azul.png" alt="Tanque azul">
+                                <span>AZUL</span>
+                            </button>
+                            <button type="button" class="battle-skin-option" data-tank-skin="vermelho" title="Vermelho">
+                                <img src="assets/tanks/tanque_vermelho.png" alt="Tanque vermelho">
+                                <span>VERMELHO</span>
+                            </button>
+                            <button type="button" class="battle-skin-option" data-tank-skin="bege" title="Bege">
+                                <img src="assets/tanks/tanque_bege.png" alt="Tanque bege">
+                                <span>BEGE</span>
+                            </button>
+                            <button type="button" class="battle-skin-option" data-tank-skin="escuro" title="Escuro">
+                                <img src="assets/tanks/tanque_escuro.png" alt="Tanque escuro">
+                                <span>ESCURO</span>
+                            </button>
+                        </div>
+                        <small id="battleSkinStatus">Escolha agora. Durante a batalha a cor não pode ser alterada.</small>
+                    </div>
+
                     <div
                         id="battleLobbyPlayers"
                         class="battle-player-counter"
@@ -247,11 +370,11 @@
                     class="battle-screen battle-programming-screen"
                     hidden
                 >
-                    <div class="battle-kicker">
+                    <div id="battleProgrammingKicker" class="battle-kicker">
                         FASE DE PROGRAMAÇÃO
                     </div>
 
-                    <h2>
+                    <h2 id="battleProgrammingTitle">
                         PREPARE SEU TANQUE
                     </h2>
 
@@ -263,39 +386,29 @@
                     </div>
 
                     <p>
-                        Resolva desafios no laboratório para desbloquear melhorias antes da batalha.
+                        Escolha JavaScript ou Python, programe até 5 funções do tanque e finalize sua preparação.
                     </p>
 
                     <div class="battle-programming-actions">
                         <a
                             id="battleOpenLab"
                             class="battle-primary-button battle-link-button"
-                            href="lab.html"
+                            href="#"
                             target="_blank"
-                            rel="noopener"
                         >
-                            ABRIR LABORATÓRIO
+                            PROGRAMAR MEU TANQUE
                         </a>
-
-                        <button
-                            id="battleReadyButton"
-                            class="battle-secondary-button"
-                            type="button"
-                        >
-                            ESTOU PRONTO
-                        </button>
                     </div>
 
                     <div
                         id="battleProgrammingState"
                         class="battle-loadout-state"
                     >
-                        Configuração do tanque sincronizada.
+                        Abra a programação do tanque. Quando finalizar, não será possível voltar.
                     </div>
 
-                    <div class="battle-small-note">
-                        Você pode deixar o laboratório aberto em outra aba. Ao voltar para esta tela,
-                        os upgrades serão enviados ao servidor.
+                    <div id="battleProgrammingSummary" class="battle-small-note">
+                        A cor do tanque já está bloqueada. A linguagem escolhida também ficará bloqueada nesta partida.
                     </div>
                 </section>
 
@@ -381,14 +494,21 @@
                 "battleProgrammingState"
             );
 
-        readyButton =
-            document.getElementById(
-                "battleReadyButton"
-            );
+        programmingKickerElement = document.getElementById("battleProgrammingKicker");
+        programmingTitleElement = document.getElementById("battleProgrammingTitle");
+
+        readyButton = document.getElementById("battleReadyButton");
+        openLabLink = document.getElementById("battleOpenLab");
+        programmingSummaryElement = document.getElementById("battleProgrammingSummary");
 
         countdownValue =
             document.getElementById(
                 "battleCountdownValue"
+            );
+
+        skinStatusElement =
+            document.getElementById(
+                "battleSkinStatus"
             );
 
         const form =
@@ -548,19 +668,14 @@
             }
         );
 
-        readyButton.addEventListener(
-            "click",
-            () => {
-                currentReady =
-                    !currentReady;
+        document.querySelectorAll("[data-tank-skin]").forEach((button) => {
+            button.addEventListener("click", () => {
+                selectLobbySkin(button.dataset.tankSkin);
+            });
+        });
 
-                window.battleTankNetwork.setReady(
-                    currentReady
-                );
+        updateSkinButtons();
 
-                updateReadyButton();
-            }
-        );
     }
 
     function showPanel(
@@ -639,12 +754,33 @@
         playerName =
             detail.player_name;
 
+        currentFinalized = Boolean(detail.programming_finalized);
+
         roomCodeElement.textContent =
             roomCode;
 
         showPanel(
             waitingPanel
         );
+
+        updateSkinButtons();
+
+        if (skinStatusElement) {
+            skinStatusElement.textContent = `Cor selecionada: ${skinLabel(getLocalSkin())}. Você pode alterá-la enquanto estiver no lobby.`;
+        }
+
+        if (detail.room_status === "lobby") {
+            currentFinalized = false;
+            currentReady = false;
+            programmingSessionInitialized = false;
+            localStorage.removeItem(LAB_RETURN_KEY);
+            localStorage.setItem(PROGRAM_ACCESS_KEY, JSON.stringify({
+                roomCode,
+                phase: "lobby",
+                finalized: false,
+                language: null,
+            }));
+        }
 
         if (
             detail.room_status ===
@@ -678,12 +814,14 @@
         if (
             localEntry
         ) {
-            currentReady =
-                Boolean(
-                    localEntry.ready
-                );
-
+            currentReady = Boolean(localEntry.ready);
+            currentFinalized = Boolean(localEntry.finalized);
             updateReadyButton();
+
+            if (currentFinalized && programmingSummaryElement) {
+                const lang = localEntry.programming_language === "python" ? "Python" : "JavaScript";
+                programmingSummaryElement.textContent = `${lang} • ${Number(localEntry.function_count || 0)} função(ões) ativa(s).`;
+            }
         }
 
         if (
@@ -722,15 +860,37 @@
                 endsAt
             );
 
+        if (!programmingSessionInitialized && !currentFinalized) {
+            resetLocalProgramLoadout();
+            programmingSessionInitialized = true;
+        }
+
         showPanel(
             programmingPanel
         );
 
         startProgrammingClock();
 
-        startLoadoutSync();
+        const storedAccess = (() => {
+            try { return JSON.parse(localStorage.getItem(PROGRAM_ACCESS_KEY) || "{}"); }
+            catch (_error) { return {}; }
+        })();
+        const existingAccess = String(storedAccess.roomCode || "") === String(roomCode) ? storedAccess : {};
+        const access = {
+            ...existingAccess,
+            roomCode,
+            phase: currentFinalized ? "waiting" : "programming",
+            finalized: currentFinalized,
+        };
+        localStorage.setItem(PROGRAM_ACCESS_KEY, JSON.stringify(access));
 
-        syncLoadoutNow();
+        if (openLabLink) {
+            openLabLink.href = `lab.html?room=${encodeURIComponent(roomCode)}`;
+            openLabLink.hidden = currentFinalized;
+        }
+
+        updateReadyButton();
+        consumeLabReturnIntent();
     }
 
     function startProgrammingClock() {
@@ -831,20 +991,53 @@
     }
 
     function updateReadyButton() {
-        if (
-            !readyButton
-        ) {
+        if (!programmingStateElement || !programmingPanel) {
             return;
         }
 
-        readyButton.textContent =
-            currentReady
-                ? "PRONTO ✓"
-                : "ESTOU PRONTO";
+        if (openLabLink) {
+            openLabLink.hidden = currentFinalized;
+        }
 
-        readyButton.classList.toggle(
-            "is-ready",
-            currentReady
+        if (currentFinalized) {
+            programmingStateElement.textContent =
+                "PROGRAMAÇÃO FINALIZADA ✓ • AGUARDANDO O PROFESSOR INICIAR A ARENA.";
+            programmingStateElement.classList.add("is-ready");
+            if (programmingKickerElement) programmingKickerElement.textContent = "TANQUE PRONTO";
+            if (programmingTitleElement) programmingTitleElement.textContent = "AGUARDANDO A ARENA";
+        }
+        else {
+            programmingStateElement.textContent =
+                "PROGRAME SEU TANQUE E CLIQUE EM FINALIZAR PROGRAMAÇÃO NO LABORATÓRIO.";
+            programmingStateElement.classList.remove("is-ready");
+            if (programmingKickerElement) programmingKickerElement.textContent = "FASE DE PROGRAMAÇÃO";
+            if (programmingTitleElement) programmingTitleElement.textContent = "PREPARE SEU TANQUE";
+        }
+    }
+
+    function consumeLabReturnIntent() {
+        const raw = localStorage.getItem(LAB_RETURN_KEY);
+
+        if (!raw || !joined || programmingPanel.hidden || currentFinalized) {
+            return;
+        }
+
+        let payload;
+        try { payload = JSON.parse(raw); }
+        catch (_error) { payload = null; }
+
+        localStorage.removeItem(LAB_RETURN_KEY);
+
+        if (!payload || payload.roomCode !== roomCode || !payload.finalized) {
+            return;
+        }
+
+        programmingStateElement.textContent =
+            "Enviando programa final ao servidor...";
+
+        window.battleTankNetwork.finalizeProgramming(
+            payload.language,
+            payload.programmedFunctions || []
         );
     }
 
@@ -852,6 +1045,8 @@
         endsAt
     ) {
         stopLoadoutSync();
+        const access = (() => { try { return JSON.parse(localStorage.getItem(PROGRAM_ACCESS_KEY) || "{}"); } catch (_e) { return {}; } })();
+        localStorage.setItem(PROGRAM_ACCESS_KEY, JSON.stringify({ ...access, roomCode, phase:"countdown", finalized:true }));
 
         countdownEndsAt =
             Number(
@@ -966,19 +1161,31 @@
     window.addEventListener(
         "storage",
         (event) => {
-            if (
-                event.key ===
-                "battleTankPlayer"
-            ) {
-                syncLoadoutNow();
+            if (event.key === PLAYER_STORAGE_KEY) {
+                updateSkinButtons();
+            }
+
+            if (event.key === LAB_RETURN_KEY && event.newValue) {
+                consumeLabReturnIntent();
             }
         }
     );
 
+    window.addEventListener("message", (event) => {
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+
+        if (event.data?.type === "battle-tank-programming-finalized") {
+            consumeLabReturnIntent();
+        }
+    });
+
     window.addEventListener(
         "focus",
         () => {
-            syncLoadoutNow();
+            updateSkinButtons();
+            consumeLabReturnIntent();
         }
     );
 
@@ -1032,10 +1239,62 @@
             );
 
             network.addEventListener(
-                "loadout-saved",
+                "programming-finalized",
                 (event) => {
-                    programmingStateElement.textContent =
-                        `${event.detail.upgrade_count} upgrade(s) confirmado(s) pelo servidor.`;
+                    currentFinalized = true;
+                    currentReady = true;
+                    updateReadyButton();
+
+                    const lang = event.detail.language === "python" ? "Python" : "JavaScript";
+                    if (programmingSummaryElement) {
+                        programmingSummaryElement.textContent = `${lang} • ${Number(event.detail.function_count || 0)} função(ões) ativa(s). Tanque pronto para a batalha.`;
+                    }
+
+                    let playerData = {};
+                    try { playerData = JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY) || "{}"); } catch (_error) {}
+                    localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify({ ...playerData, ...(event.detail.loadout || {}) }));
+
+                    let access = {};
+                    try { access = JSON.parse(localStorage.getItem(PROGRAM_ACCESS_KEY) || "{}"); } catch (_error) {}
+                    localStorage.setItem(PROGRAM_ACCESS_KEY, JSON.stringify({ ...access, roomCode, phase:"waiting", finalized:true, language:event.detail.language }));
+                }
+            );
+
+            network.addEventListener(
+                "programming-error",
+                (event) => {
+                    currentFinalized = false;
+                    programmingStateElement.textContent = event.detail.message || "Não foi possível finalizar a programação.";
+                    let access = {};
+                    try { access = JSON.parse(localStorage.getItem(PROGRAM_ACCESS_KEY) || "{}"); } catch (_error) {}
+                    localStorage.setItem(PROGRAM_ACCESS_KEY, JSON.stringify({ ...access, roomCode, phase:"programming", finalized:false }));
+                    updateReadyButton();
+                }
+            );
+
+            network.addEventListener(
+                "programming-locked",
+                (event) => {
+                    programmingStateElement.textContent = event.detail.message || "A programação está bloqueada.";
+                }
+            );
+
+            network.addEventListener(
+                "skin-saved",
+                (event) => {
+                    if (skinStatusElement) {
+                        skinStatusElement.textContent =
+                            `Cor salva no lobby: ${skinLabel(event.detail.skin)}.`;
+                    }
+                }
+            );
+
+            network.addEventListener(
+                "skin-locked",
+                (event) => {
+                    if (skinStatusElement) {
+                        skinStatusElement.textContent = event.detail.message;
+                    }
                 }
             );
 
@@ -1059,6 +1318,9 @@
             network.addEventListener(
                 "match-start",
                 (event) => {
+                    let access = {};
+                    try { access = JSON.parse(localStorage.getItem(PROGRAM_ACCESS_KEY) || "{}"); } catch (_error) {}
+                    localStorage.setItem(PROGRAM_ACCESS_KEY, JSON.stringify({ ...access, roomCode, phase:"running", finalized:true }));
                     startMatch(
                         event.detail
                     );
