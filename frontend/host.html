@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Battle Tank EMTI - Professor
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="host.css"
+    >
+</head>
+
+<body>
+    <main class="host-shell">
+        <header class="host-header">
+            <div>
+                <div class="eyebrow">
+                    BATTLE TANK EMTI
+                </div>
+
+                <h1>
+                    CENTRAL DO PROFESSOR
+                </h1>
+            </div>
+
+            <div
+                id="serverBadge"
+                class="server-badge"
+            >
+                CONECTANDO
+            </div>
+        </header>
+
+        <section
+            id="createPanel"
+            class="create-panel"
+        >
+            <div>
+                <h2>
+                    Pronto para abrir a arena?
+                </h2>
+
+                <p>
+                    Crie uma sessão e mostre o código no telão.
+                    Os alunos digitam o código nos computadores.
+                </p>
+            </div>
+
+            <button
+                id="createRoomButton"
+                class="primary-button"
+                disabled
+            >
+                CRIAR PARTIDA
+            </button>
+        </section>
+
+        <section
+            id="roomPanel"
+            class="room-panel"
+            hidden
+        >
+            <div class="room-code-panel">
+                <div class="room-code-label">
+                    CÓDIGO DA SESSÃO
+                </div>
+
+                <div
+                    id="roomCode"
+                    class="room-code"
+                >
+                    ------
+                </div>
+
+                <div class="join-address">
+                    Alunos entram pelo endereço do jogo e digitam este código.
+                </div>
+            </div>
+
+            <div class="lobby-grid">
+                <section class="players-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <div class="eyebrow">
+                                LOBBY
+                            </div>
+
+                            <h2>
+                                Jogadores conectados
+                            </h2>
+                        </div>
+
+                        <div
+                            id="playerCount"
+                            class="player-count"
+                        >
+                            0 / 20
+                        </div>
+                    </div>
+
+                    <div
+                        id="playerList"
+                        class="player-list"
+                    >
+                        <div class="empty-state">
+                            Aguardando jogadores...
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="battle-summary">
+                    <div class="summary-label">
+                        AO INICIAR
+                    </div>
+
+                    <div class="summary-number">
+                        <span id="humanCount">
+                            0
+                        </span>
+
+                        <small>
+                            HUMANOS
+                        </small>
+                    </div>
+
+                    <div class="plus">
+                        +
+                    </div>
+
+                    <div class="summary-number">
+                        <span id="botCount">
+                            20
+                        </span>
+
+                        <small>
+                            BOTS
+                        </small>
+                    </div>
+
+                    <div class="equals">
+                        20 PARTICIPANTES
+                    </div>
+                </aside>
+            </div>
+
+            <button
+                id="startRoomButton"
+                class="start-button"
+                disabled
+            >
+                INICIAR BATALHA
+            </button>
+
+            <div
+                id="hostMessage"
+                class="host-message"
+            >
+                Aguardando pelo menos um jogador entrar.
+            </div>
+        </section>
+
+        <section
+            id="startedPanel"
+            class="started-panel"
+            hidden
+        >
+            <div class="started-kicker">
+                ARENA LIBERADA
+            </div>
+
+            <h2>
+                BATALHA INICIADA
+            </h2>
+
+            <div
+                id="startedSummary"
+                class="started-summary"
+            >
+                20 participantes
+            </div>
+
+            <p>
+                Na próxima etapa este telão passará a mostrar o mapa inteiro,
+                eliminações, sobreviventes e a zona de batalha em tempo real.
+            </p>
+        </section>
+    </main>
+
+    <script src="network.js"></script>
+    <script src="host.js"></script>
+</body>
+</html>
