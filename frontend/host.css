@@ -47,7 +47,9 @@ input {
 .host-header h1,
 .players-panel h2,
 .create-panel h2,
-.started-panel h2 {
+.started-panel h2,
+.programming-timer-panel h2,
+.countdown-panel h2 {
     margin: 0;
 }
 
@@ -75,6 +77,8 @@ input {
 .room-code-panel,
 .players-panel,
 .battle-summary,
+.programming-timer-panel,
+.countdown-panel,
 .started-panel {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 18px;
@@ -98,7 +102,9 @@ input {
 }
 
 .primary-button,
-.start-button {
+.start-button,
+.battle-now-button,
+.end-match-button {
     border: 0;
     border-radius: 12px;
     cursor: pointer;
@@ -115,7 +121,9 @@ input {
 }
 
 .primary-button:disabled,
-.start-button:disabled {
+.start-button:disabled,
+.battle-now-button:disabled,
+.end-match-button:disabled {
     cursor: not-allowed;
     opacity: 0.36;
 }
@@ -133,15 +141,49 @@ input {
 }
 
 .room-code {
-    margin: 9px 0 6px;
+    margin: 9px 0 8px;
     font-size: clamp(64px, 10vw, 140px);
     font-weight: 900;
     line-height: 0.95;
     letter-spacing: 0.08em;
 }
 
+.phase-badge {
+    width: max-content;
+    margin: 0 auto 14px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    background: rgba(215, 239, 196, 0.1);
+    color: #d3efbf;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+}
+
 .join-address {
     color: rgba(244, 246, 241, 0.62);
+}
+
+.programming-timer-panel {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 24px;
+    margin-top: 20px;
+    padding: 22px 26px;
+}
+
+.programming-timer {
+    font-size: clamp(48px, 7vw, 82px);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+
+.battle-now-button {
+    min-height: 58px;
+    padding: 0 22px;
+    background: #d9efc8;
+    color: #13200f;
 }
 
 .lobby-grid {
@@ -170,12 +212,12 @@ input {
 
 .player-list {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
 }
 
 .player-chip {
-    min-height: 54px;
+    min-height: 62px;
     display: flex;
     align-items: center;
     gap: 9px;
@@ -198,11 +240,34 @@ input {
     font-weight: 900;
 }
 
+.player-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
 .player-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 800;
+}
+
+.player-meta {
+    margin-top: 3px;
+    font-size: 10px;
+    opacity: 0.48;
+}
+
+.player-status {
+    flex: 0 0 auto;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    color: rgba(244, 246, 241, 0.45);
+}
+
+.player-status.ready {
+    color: #c8efad;
 }
 
 .empty-state {
@@ -256,6 +321,12 @@ input {
     font-weight: 900;
 }
 
+.ready-summary {
+    margin-top: 13px;
+    font-size: 12px;
+    color: #c8efad;
+}
+
 .start-button {
     width: 100%;
     min-height: 70px;
@@ -265,6 +336,22 @@ input {
     font-size: 20px;
 }
 
+
+.end-match-button {
+    margin-top: 28px;
+    min-width: 260px;
+    min-height: 58px;
+    padding: 0 26px;
+    background: #7c2f2f;
+    color: #ffffff;
+    border: 1px solid #a64a4a;
+    border-radius: 12px;
+}
+
+.end-match-button:hover:not(:disabled) {
+    background: #963a3a;
+}
+
 .host-message {
     margin-top: 10px;
     text-align: center;
@@ -272,9 +359,17 @@ input {
     color: rgba(244, 246, 241, 0.6);
 }
 
+.countdown-panel,
 .started-panel {
-    padding: 50px 28px;
+    padding: 54px 28px;
     text-align: center;
+}
+
+.countdown-value {
+    margin: 10px 0;
+    font-size: clamp(130px, 24vw, 260px);
+    font-weight: 900;
+    line-height: 0.88;
 }
 
 .started-kicker {
@@ -302,14 +397,10 @@ input {
     color: rgba(244, 246, 241, 0.6);
 }
 
-@media (max-width: 900px) {
-    .host-shell {
-        width: min(100% - 28px, 1500px);
-    }
-
-    .create-panel {
-        align-items: stretch;
-        flex-direction: column;
+@media (max-width: 1000px) {
+    .programming-timer-panel {
+        grid-template-columns: 1fr;
+        text-align: center;
     }
 
     .lobby-grid {
@@ -319,4 +410,30 @@ input {
     .player-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+@media (max-width: 650px) {
+    .host-shell {
+        width: min(100% - 24px, 1500px);
+    }
+
+    .host-header,
+    .create-panel {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .player-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+.creator-credit {
+    padding: 18px 10px 26px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: rgba(244, 246, 241, 0.38);
 }

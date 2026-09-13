@@ -45,12 +45,11 @@
         >
             <div>
                 <h2>
-                    Pronto para abrir a arena?
+                    Abrir uma nova sessão
                 </h2>
 
                 <p>
-                    Crie uma sessão e mostre o código no telão.
-                    Os alunos digitam o código nos computadores.
+                    Crie a partida, mostre o código aos alunos e acompanhe todo o fluxo pelo telão.
                 </p>
             </div>
 
@@ -80,17 +79,55 @@
                     ------
                 </div>
 
+                <div
+                    id="phaseBadge"
+                    class="phase-badge"
+                >
+                    LOBBY
+                </div>
+
                 <div class="join-address">
-                    Alunos entram pelo endereço do jogo e digitam este código.
+                    Os alunos entram no endereço do jogo e digitam este código.
                 </div>
             </div>
+
+            <section
+                id="programmingTimerPanel"
+                class="programming-timer-panel"
+                hidden
+            >
+                <div>
+                    <div class="eyebrow">
+                        FASE DE PROGRAMAÇÃO
+                    </div>
+
+                    <h2>
+                        Customize seu tanque
+                    </h2>
+                </div>
+
+                <div
+                    id="programmingTimer"
+                    class="programming-timer"
+                >
+                    05:00
+                </div>
+
+                <button
+                    id="startBattleButton"
+                    class="battle-now-button"
+                    type="button"
+                >
+                    INICIAR BATALHA AGORA
+                </button>
+            </section>
 
             <div class="lobby-grid">
                 <section class="players-panel">
                     <div class="panel-heading">
                         <div>
                             <div class="eyebrow">
-                                LOBBY
+                                TURMA
                             </div>
 
                             <h2>
@@ -118,7 +155,7 @@
 
                 <aside class="battle-summary">
                     <div class="summary-label">
-                        AO INICIAR
+                        COMPOSIÇÃO DA ARENA
                     </div>
 
                     <div class="summary-number">
@@ -148,15 +185,22 @@
                     <div class="equals">
                         20 PARTICIPANTES
                     </div>
+
+                    <div
+                        id="readySummary"
+                        class="ready-summary"
+                    >
+                        0 prontos
+                    </div>
                 </aside>
             </div>
 
             <button
-                id="startRoomButton"
+                id="startProgrammingButton"
                 class="start-button"
                 disabled
             >
-                INICIAR BATALHA
+                INICIAR PREPARAÇÃO - 5 MIN
             </button>
 
             <div
@@ -165,6 +209,27 @@
             >
                 Aguardando pelo menos um jogador entrar.
             </div>
+        </section>
+
+        <section
+            id="countdownPanel"
+            class="countdown-panel"
+            hidden
+        >
+            <div class="eyebrow">
+                TODOS PARA A ARENA
+            </div>
+
+            <div
+                id="countdownValue"
+                class="countdown-value"
+            >
+                5
+            </div>
+
+            <h2>
+                PREPARE-SE
+            </h2>
         </section>
 
         <section
@@ -187,11 +252,24 @@
                 20 participantes
             </div>
 
-            <p>
-                Na próxima etapa este telão passará a mostrar o mapa inteiro,
-                eliminações, sobreviventes e a zona de batalha em tempo real.
+            <p id="startedDescription">
+                A sessão agora está em combate. O servidor controla o movimento
+                dos jogadores humanos e a movimentação/perseguição dos bots.
+                Tiros, dano e eliminações serão migrados na próxima etapa.
             </p>
+
+            <button
+                id="endMatchButton"
+                class="end-match-button"
+                type="button"
+            >
+                ENCERRAR PARTIDA
+            </button>
         </section>
+
+        <footer class="creator-credit">
+            Criado por: Professor André Kazuo Takaki
+        </footer>
     </main>
 
     <script src="network.js"></script>

@@ -1,15 +1,32 @@
 (() => {
     let overlay = null;
-    let statusElement = null;
-    let formElement = null;
-    let waitingElement = null;
-    let waitingTextElement = null;
-    let playersElement = null;
-    let roomCodeElement = null;
 
-    let joined = false;
+    let menuPanel = null;
+    let joinPanel = null;
+    let helpPanel = null;
+    let waitingPanel = null;
+    let programmingPanel = null;
+    let countdownPanel = null;
+
+    let statusElement = null;
+    let playerCountElement = null;
+    let roomCodeElement = null;
+    let programmingTimerElement = null;
+    let programmingStateElement = null;
+    let readyButton = null;
+    let countdownValue = null;
+
     let playerName = "";
     let roomCode = "";
+    let joined = false;
+    let currentReady = false;
+
+    let programmingEndsAt = null;
+    let countdownEndsAt = null;
+
+    let clockTimer = null;
+    let loadoutSyncTimer = null;
+    let lastLoadoutSignature = "";
 
     function createLobby() {
         overlay =
@@ -21,71 +38,185 @@
             "battleLobbyOverlay";
 
         overlay.innerHTML = `
-            <div class="battle-lobby-card">
-                <div class="battle-lobby-kicker">
-                    BATTLE TANK EMTI
-                </div>
-
-                <h1>
-                    ENTRAR NA BATALHA
-                </h1>
-
-                <p class="battle-lobby-subtitle">
-                    Digite seu nome e o código de 6 números exibido no telão.
-                </p>
-
-                <div
-                    id="battleLobbyStatus"
-                    class="battle-lobby-status"
+            <div class="battle-shell">
+                <section
+                    id="battleMenuPanel"
+                    class="battle-screen battle-menu-screen"
                 >
-                    Conectando ao servidor...
-                </div>
+                    <div class="battle-brand">
+                        <div class="battle-kicker">
+                            BATTLE TANK EMTI
+                        </div>
 
-                <form
-                    id="battleLobbyForm"
-                    class="battle-lobby-form"
-                >
-                    <label>
-                        SEU NOME
-                        <input
-                            id="battlePlayerName"
-                            type="text"
-                            maxlength="20"
-                            autocomplete="off"
-                            placeholder="Ex.: André"
-                            required
+                        <h1>
+                            ARENA DE PROGRAMADORES
+                        </h1>
+
+                        <p>
+                            Programe. Customize. Entre na arena.
+                        </p>
+                    </div>
+
+                    <div class="battle-menu-actions">
+                        <button
+                            id="battleOpenJoin"
+                            class="battle-primary-button"
+                            type="button"
                         >
-                    </label>
+                            START
+                        </button>
 
-                    <label>
-                        CÓDIGO DA SESSÃO
-                        <input
-                            id="battleRoomCode"
-                            class="battle-room-code-input"
-                            type="text"
-                            inputmode="numeric"
-                            maxlength="6"
-                            autocomplete="off"
-                            placeholder="000000"
-                            required
+                        <a
+                            class="battle-secondary-button"
+                            href="lab.html"
+                            target="_blank"
+                            rel="noopener"
                         >
-                    </label>
+                            LABORATÓRIO LIVRE
+                        </a>
 
-                    <button
-                        type="submit"
-                        class="battle-primary-button"
-                    >
-                        ENTRAR NA PARTIDA
-                    </button>
-                </form>
+                        <button
+                            id="battleOpenHelp"
+                            class="battle-secondary-button"
+                            type="button"
+                        >
+                            COMO JOGAR
+                        </button>
+                    </div>
 
-                <div
-                    id="battleLobbyWaiting"
-                    class="battle-lobby-waiting"
+                    <div class="battle-menu-note">
+                        O professor cria a sessão e fornece o código da partida.
+                    </div>
+
+                    <div class="battle-creator-credit">
+                        Criado por: Professor André Kazuo Takaki
+                    </div>
+                </section>
+
+                <section
+                    id="battleJoinPanel"
+                    class="battle-screen"
                     hidden
                 >
-                    <div class="battle-room-label">
-                        SESSÃO
+                    <button
+                        id="battleBackMenu"
+                        class="battle-back-button"
+                        type="button"
+                    >
+                        ← MENU
+                    </button>
+
+                    <div class="battle-kicker">
+                        BATTLE TANK EMTI
+                    </div>
+
+                    <h2>
+                        ENTRAR NA SESSÃO
+                    </h2>
+
+                    <p class="battle-subtitle">
+                        Digite seu nome e o código exibido no telão do professor.
+                    </p>
+
+                    <div
+                        id="battleLobbyStatus"
+                        class="battle-status"
+                    >
+                        Conectando ao servidor...
+                    </div>
+
+                    <form
+                        id="battleLobbyForm"
+                        class="battle-form"
+                    >
+                        <label>
+                            SEU NOME
+
+                            <input
+                                id="battlePlayerName"
+                                type="text"
+                                maxlength="20"
+                                autocomplete="off"
+                                placeholder="Ex.: André"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            CÓDIGO DA SESSÃO
+
+                            <input
+                                id="battleRoomCode"
+                                class="battle-room-code-input"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="6"
+                                autocomplete="off"
+                                placeholder="000000"
+                                required
+                            >
+                        </label>
+
+                        <button
+                            type="submit"
+                            class="battle-primary-button"
+                        >
+                            ENTRAR NA PARTIDA
+                        </button>
+                    </form>
+                </section>
+
+                <section
+                    id="battleHelpPanel"
+                    class="battle-screen"
+                    hidden
+                >
+                    <button
+                        id="battleBackHelp"
+                        class="battle-back-button"
+                        type="button"
+                    >
+                        ← MENU
+                    </button>
+
+                    <div class="battle-kicker">
+                        COMO JOGAR
+                    </div>
+
+                    <h2>
+                        CONTROLES E OBJETIVO
+                    </h2>
+
+                    <div class="battle-help-grid">
+                        <div>
+                            <strong>Movimento</strong>
+                            <span>WASD ou setas</span>
+                        </div>
+
+                        <div>
+                            <strong>Disparo</strong>
+                            <span>Espaço ou clique</span>
+                        </div>
+
+                        <div>
+                            <strong>Preparação</strong>
+                            <span>5 minutos para programar e melhorar o tanque</span>
+                        </div>
+
+                        <div>
+                            <strong>Objetivo</strong>
+                            <span>Sobreviver e usar bem os upgrades conquistados programando</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    id="battleWaitingPanel"
+                    class="battle-screen"
+                    hidden
+                >
+                    <div class="battle-kicker">
+                        VOCÊ ESTÁ NA SESSÃO
                     </div>
 
                     <div
@@ -95,12 +226,13 @@
                         ------
                     </div>
 
-                    <div
-                        id="battleLobbyWaitingText"
-                        class="battle-waiting-text"
-                    >
-                        Aguardando o professor iniciar...
-                    </div>
+                    <h2>
+                        AGUARDANDO O PROFESSOR
+                    </h2>
+
+                    <p>
+                        Quando a preparação começar, você terá 5 minutos para programar seu tanque.
+                    </p>
 
                     <div
                         id="battleLobbyPlayers"
@@ -108,7 +240,85 @@
                     >
                         0 / 20 jogadores
                     </div>
-                </div>
+                </section>
+
+                <section
+                    id="battleProgrammingPanel"
+                    class="battle-screen battle-programming-screen"
+                    hidden
+                >
+                    <div class="battle-kicker">
+                        FASE DE PROGRAMAÇÃO
+                    </div>
+
+                    <h2>
+                        PREPARE SEU TANQUE
+                    </h2>
+
+                    <div
+                        id="battleProgrammingTimer"
+                        class="battle-programming-timer"
+                    >
+                        05:00
+                    </div>
+
+                    <p>
+                        Resolva desafios no laboratório para desbloquear melhorias antes da batalha.
+                    </p>
+
+                    <div class="battle-programming-actions">
+                        <a
+                            id="battleOpenLab"
+                            class="battle-primary-button battle-link-button"
+                            href="lab.html"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            ABRIR LABORATÓRIO
+                        </a>
+
+                        <button
+                            id="battleReadyButton"
+                            class="battle-secondary-button"
+                            type="button"
+                        >
+                            ESTOU PRONTO
+                        </button>
+                    </div>
+
+                    <div
+                        id="battleProgrammingState"
+                        class="battle-loadout-state"
+                    >
+                        Configuração do tanque sincronizada.
+                    </div>
+
+                    <div class="battle-small-note">
+                        Você pode deixar o laboratório aberto em outra aba. Ao voltar para esta tela,
+                        os upgrades serão enviados ao servidor.
+                    </div>
+                </section>
+
+                <section
+                    id="battleCountdownPanel"
+                    class="battle-screen battle-countdown-screen"
+                    hidden
+                >
+                    <div class="battle-kicker">
+                        PREPARE-SE
+                    </div>
+
+                    <div
+                        id="battleCountdownValue"
+                        class="battle-countdown-value"
+                    >
+                        5
+                    </div>
+
+                    <h2>
+                        A BATALHA VAI COMEÇAR
+                    </h2>
+                </section>
             </div>
         `;
 
@@ -116,27 +326,42 @@
             overlay
         );
 
+        menuPanel =
+            document.getElementById(
+                "battleMenuPanel"
+            );
+
+        joinPanel =
+            document.getElementById(
+                "battleJoinPanel"
+            );
+
+        helpPanel =
+            document.getElementById(
+                "battleHelpPanel"
+            );
+
+        waitingPanel =
+            document.getElementById(
+                "battleWaitingPanel"
+            );
+
+        programmingPanel =
+            document.getElementById(
+                "battleProgrammingPanel"
+            );
+
+        countdownPanel =
+            document.getElementById(
+                "battleCountdownPanel"
+            );
+
         statusElement =
             document.getElementById(
                 "battleLobbyStatus"
             );
 
-        formElement =
-            document.getElementById(
-                "battleLobbyForm"
-            );
-
-        waitingElement =
-            document.getElementById(
-                "battleLobbyWaiting"
-            );
-
-        waitingTextElement =
-            document.getElementById(
-                "battleLobbyWaitingText"
-            );
-
-        playersElement =
+        playerCountElement =
             document.getElementById(
                 "battleLobbyPlayers"
             );
@@ -146,9 +371,107 @@
                 "battleLobbyRoomCode"
             );
 
+        programmingTimerElement =
+            document.getElementById(
+                "battleProgrammingTimer"
+            );
+
+        programmingStateElement =
+            document.getElementById(
+                "battleProgrammingState"
+            );
+
+        readyButton =
+            document.getElementById(
+                "battleReadyButton"
+            );
+
+        countdownValue =
+            document.getElementById(
+                "battleCountdownValue"
+            );
+
+        const form =
+            document.getElementById(
+                "battleLobbyForm"
+            );
+
+        const nameInput =
+            document.getElementById(
+                "battlePlayerName"
+            );
+
         const codeInput =
             document.getElementById(
                 "battleRoomCode"
+            );
+
+        document
+            .getElementById(
+                "battleOpenJoin"
+            )
+            .addEventListener(
+                "click",
+                () => {
+                    showPanel(
+                        joinPanel
+                    );
+
+                    setStatus(
+                        window.battleTankNetwork.connected
+                            ? "Servidor online. Digite o código da sessão."
+                            : "Conectando ao servidor...",
+                        window.battleTankNetwork.connected
+                            ? "success"
+                            : "normal"
+                    );
+
+                    setTimeout(
+                        () => {
+                            nameInput.focus();
+                        },
+                        50
+                    );
+                }
+            );
+
+        document
+            .getElementById(
+                "battleOpenHelp"
+            )
+            .addEventListener(
+                "click",
+                () => {
+                    showPanel(
+                        helpPanel
+                    );
+                }
+            );
+
+        document
+            .getElementById(
+                "battleBackMenu"
+            )
+            .addEventListener(
+                "click",
+                () => {
+                    showPanel(
+                        menuPanel
+                    );
+                }
+            );
+
+        document
+            .getElementById(
+                "battleBackHelp"
+            )
+            .addEventListener(
+                "click",
+                () => {
+                    showPanel(
+                        menuPanel
+                    );
+                }
             );
 
         codeInput.addEventListener(
@@ -167,23 +490,16 @@
             }
         );
 
-        formElement.addEventListener(
+        form.addEventListener(
             "submit",
             (event) => {
                 event.preventDefault();
 
-                const nameInput =
-                    document.getElementById(
-                        "battlePlayerName"
-                    );
-
                 playerName =
-                    nameInput.value
-                        .trim();
+                    nameInput.value.trim();
 
                 roomCode =
-                    codeInput.value
-                        .trim();
+                    codeInput.value.trim();
 
                 if (
                     !window.battleTankNetwork.connected
@@ -231,11 +547,50 @@
                 );
             }
         );
+
+        readyButton.addEventListener(
+            "click",
+            () => {
+                currentReady =
+                    !currentReady;
+
+                window.battleTankNetwork.setReady(
+                    currentReady
+                );
+
+                updateReadyButton();
+            }
+        );
+    }
+
+    function showPanel(
+        target
+    ) {
+        const panels = [
+            menuPanel,
+            joinPanel,
+            helpPanel,
+            waitingPanel,
+            programmingPanel,
+            countdownPanel
+        ];
+
+        for (
+            const panel
+            of panels
+        ) {
+            if (
+                panel
+            ) {
+                panel.hidden =
+                    panel !== target;
+            }
+        }
     }
 
     function setStatus(
         message,
-        type
+        type = "normal"
     ) {
         if (
             !statusElement
@@ -247,7 +602,29 @@
             message;
 
         statusElement.dataset.type =
-            type || "normal";
+            type;
+    }
+
+    function formatSeconds(
+        seconds
+    ) {
+        const safeSeconds =
+            Math.max(
+                0,
+                Math.ceil(
+                    seconds
+                )
+            );
+
+        const minutes =
+            Math.floor(
+                safeSeconds / 60
+            );
+
+        const remaining =
+            safeSeconds % 60;
+
+        return `${String(minutes).padStart(2, "0")}:${String(remaining).padStart(2, "0")}`;
     }
 
     function showWaiting(
@@ -256,19 +633,27 @@
         joined =
             true;
 
-        formElement.hidden =
-            true;
-
-        waitingElement.hidden =
-            false;
-
-        roomCodeElement.textContent =
+        roomCode =
             detail.room_code;
 
-        setStatus(
-            `Você entrou como ${detail.player_name}.`,
-            "success"
+        playerName =
+            detail.player_name;
+
+        roomCodeElement.textContent =
+            roomCode;
+
+        showPanel(
+            waitingPanel
         );
+
+        if (
+            detail.room_status ===
+            "programming"
+        ) {
+            showProgramming(
+                detail.programming_ends_at
+            );
+        }
     }
 
     function updateRoom(
@@ -280,20 +665,261 @@
             return;
         }
 
-        playersElement.textContent =
+        playerCountElement.textContent =
             `${detail.human_count} / ${detail.max_participants} jogadores`;
 
+        const localEntry =
+            detail.players.find(
+                player =>
+                    player.client_id ===
+                    window.battleTankNetwork.clientId
+            );
+
         if (
-            detail.status === "lobby"
+            localEntry
         ) {
-            waitingTextElement.textContent =
-                "Aguardando o professor iniciar...";
+            currentReady =
+                Boolean(
+                    localEntry.ready
+                );
+
+            updateReadyButton();
+        }
+
+        if (
+            detail.status ===
+            "lobby"
+        ) {
+            showPanel(
+                waitingPanel
+            );
+        }
+
+        if (
+            detail.status ===
+            "programming"
+        ) {
+            showProgramming(
+                detail.programming_ends_at
+            );
+        }
+
+        if (
+            detail.status ===
+            "countdown"
+        ) {
+            showCountdown(
+                detail.countdown_ends_at
+            );
+        }
+    }
+
+    function showProgramming(
+        endsAt
+    ) {
+        programmingEndsAt =
+            Number(
+                endsAt
+            );
+
+        showPanel(
+            programmingPanel
+        );
+
+        startProgrammingClock();
+
+        startLoadoutSync();
+
+        syncLoadoutNow();
+    }
+
+    function startProgrammingClock() {
+        stopClock();
+
+        const tick =
+            () => {
+                if (
+                    !programmingEndsAt
+                ) {
+                    return;
+                }
+
+                const remaining =
+                    programmingEndsAt -
+                    Date.now() / 1000;
+
+                programmingTimerElement.textContent =
+                    formatSeconds(
+                        remaining
+                    );
+
+                if (
+                    remaining <= 0
+                ) {
+                    stopClock();
+                }
+            };
+
+        tick();
+
+        clockTimer =
+            setInterval(
+                tick,
+                250
+            );
+    }
+
+    function startLoadoutSync() {
+        stopLoadoutSync();
+
+        loadoutSyncTimer =
+            setInterval(
+                syncLoadoutNow,
+                1500
+            );
+    }
+
+    function stopLoadoutSync() {
+        if (
+            loadoutSyncTimer
+        ) {
+            clearInterval(
+                loadoutSyncTimer
+            );
+
+            loadoutSyncTimer =
+                null;
+        }
+    }
+
+    function syncLoadoutNow() {
+        if (
+            !joined ||
+            !window.battleTankNetwork.connected ||
+            programmingPanel.hidden
+        ) {
+            return;
+        }
+
+        const loadout =
+            window.battleTankNetwork.getLocalLoadout();
+
+        const signature =
+            JSON.stringify(
+                loadout
+            );
+
+        if (
+            signature ===
+            lastLoadoutSignature
+        ) {
+            return;
+        }
+
+        lastLoadoutSignature =
+            signature;
+
+        currentReady =
+            false;
+
+        updateReadyButton();
+
+        programmingStateElement.textContent =
+            "Enviando configuração do tanque...";
+
+        window.battleTankNetwork.updateLoadout();
+    }
+
+    function updateReadyButton() {
+        if (
+            !readyButton
+        ) {
+            return;
+        }
+
+        readyButton.textContent =
+            currentReady
+                ? "PRONTO ✓"
+                : "ESTOU PRONTO";
+
+        readyButton.classList.toggle(
+            "is-ready",
+            currentReady
+        );
+    }
+
+    function showCountdown(
+        endsAt
+    ) {
+        stopLoadoutSync();
+
+        countdownEndsAt =
+            Number(
+                endsAt
+            );
+
+        showPanel(
+            countdownPanel
+        );
+
+        stopClock();
+
+        const tick =
+            () => {
+                const remaining =
+                    countdownEndsAt -
+                    Date.now() / 1000;
+
+                const value =
+                    Math.max(
+                        1,
+                        Math.ceil(
+                            remaining
+                        )
+                    );
+
+                countdownValue.textContent =
+                    remaining <= 0
+                        ? "GO!"
+                        : String(
+                            value
+                        );
+
+                if (
+                    remaining <= 0
+                ) {
+                    stopClock();
+                }
+            };
+
+        tick();
+
+        clockTimer =
+            setInterval(
+                tick,
+                100
+            );
+    }
+
+    function stopClock() {
+        if (
+            clockTimer
+        ) {
+            clearInterval(
+                clockTimer
+            );
+
+            clockTimer =
+                null;
         }
     }
 
     function startMatch(
         detail
     ) {
+        stopClock();
+        stopLoadoutSync();
+
         window.battleTankSession = {
             roomCode:
                 detail.room_code,
@@ -308,15 +934,16 @@
             totalParticipants:
                 detail.total_participants,
             participants:
-                detail.participants
+                detail.participants,
+            matchId:
+                detail.match_id
         };
 
-        waitingTextElement.textContent =
-            "PARTIDA INICIADA!";
+        countdownValue.textContent =
+            "BATALHA!";
 
-        setStatus(
-            `${detail.human_count} humanos + ${detail.bot_count} bots = ${detail.total_participants} participantes`,
-            "success"
+        showPanel(
+            countdownPanel
         );
 
         setTimeout(
@@ -329,12 +956,31 @@
                     () => {
                         overlay.remove();
                     },
-                    400
+                    450
                 );
             },
-            1000
+            800
         );
     }
+
+    window.addEventListener(
+        "storage",
+        (event) => {
+            if (
+                event.key ===
+                "battleTankPlayer"
+            ) {
+                syncLoadoutNow();
+            }
+        }
+    );
+
+    window.addEventListener(
+        "focus",
+        () => {
+            syncLoadoutNow();
+        }
+    );
 
     window.addEventListener(
         "DOMContentLoaded",
@@ -347,10 +993,14 @@
             network.addEventListener(
                 "server-ready",
                 () => {
-                    setStatus(
-                        "Servidor online. Digite o código da sessão.",
-                        "success"
-                    );
+                    if (
+                        !joinPanel.hidden
+                    ) {
+                        setStatus(
+                            "Servidor online. Digite o código da sessão.",
+                            "success"
+                        );
+                    }
                 }
             );
 
@@ -373,6 +1023,40 @@
             );
 
             network.addEventListener(
+                "programming-started",
+                (event) => {
+                    showProgramming(
+                        event.detail.ends_at
+                    );
+                }
+            );
+
+            network.addEventListener(
+                "loadout-saved",
+                (event) => {
+                    programmingStateElement.textContent =
+                        `${event.detail.upgrade_count} upgrade(s) confirmado(s) pelo servidor.`;
+                }
+            );
+
+            network.addEventListener(
+                "loadout-locked",
+                (event) => {
+                    programmingStateElement.textContent =
+                        event.detail.message;
+                }
+            );
+
+            network.addEventListener(
+                "countdown-started",
+                (event) => {
+                    showCountdown(
+                        event.detail.ends_at
+                    );
+                }
+            );
+
+            network.addEventListener(
                 "match-start",
                 (event) => {
                     startMatch(
@@ -384,6 +1068,10 @@
             network.addEventListener(
                 "join-error",
                 (event) => {
+                    showPanel(
+                        joinPanel
+                    );
+
                     setStatus(
                         event.detail.message,
                         "error"
@@ -397,11 +1085,12 @@
                     joined =
                         false;
 
-                    formElement.hidden =
-                        false;
+                    stopClock();
+                    stopLoadoutSync();
 
-                    waitingElement.hidden =
-                        true;
+                    showPanel(
+                        joinPanel
+                    );
 
                     setStatus(
                         event.detail.reason ||
@@ -414,10 +1103,20 @@
             network.addEventListener(
                 "disconnected",
                 () => {
-                    setStatus(
-                        "Conexão com o servidor perdida. Tentando reconectar...",
-                        "error"
-                    );
+                    if (
+                        joined
+                    ) {
+                        programmingStateElement.textContent =
+                            "Conexão perdida. Tentando reconectar...";
+                    }
+                    else if (
+                        !joinPanel.hidden
+                    ) {
+                        setStatus(
+                            "Conexão com o servidor perdida. Tentando reconectar...",
+                            "error"
+                        );
+                    }
                 }
             );
         }

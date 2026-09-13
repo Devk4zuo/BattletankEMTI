@@ -24,6 +24,170 @@ const VIEW_HEIGHT =
 
 
 // ==========================================================
+// AJUSTE VISUAL DA ARENA À JANELA
+// ==========================================================
+//
+// IMPORTANTE:
+// O Canvas continua LOGICAMENTE em 1600 x 900.
+// Alteramos somente o tamanho visual no navegador.
+// Isso não muda câmera, tiros, colisões ou coordenadas.
+//
+function fitGameDisplay() {
+
+    const arena =
+        document.querySelector(
+            ".arena-container"
+        );
+
+    const header =
+        document.querySelector(
+            ".game-header"
+        );
+
+    const controls =
+        document.querySelector(
+            ".controls"
+        );
+
+
+    if (
+        !arena ||
+        !header ||
+        !controls
+    ) {
+        return;
+    }
+
+
+    const bodyStyle =
+        getComputedStyle(
+            document.body
+        );
+
+
+    const paddingTop =
+        parseFloat(
+            bodyStyle.paddingTop
+        ) || 0;
+
+    const paddingBottom =
+        parseFloat(
+            bodyStyle.paddingBottom
+        ) || 0;
+
+    const paddingLeft =
+        parseFloat(
+            bodyStyle.paddingLeft
+        ) || 0;
+
+    const paddingRight =
+        parseFloat(
+            bodyStyle.paddingRight
+        ) || 0;
+
+
+    const headerStyle =
+        getComputedStyle(
+            header
+        );
+
+    const controlsStyle =
+        getComputedStyle(
+            controls
+        );
+
+
+    const headerMarginBottom =
+        parseFloat(
+            headerStyle.marginBottom
+        ) || 0;
+
+    const controlsMarginTop =
+        parseFloat(
+            controlsStyle.marginTop
+        ) || 0;
+
+
+    const reservedHeight =
+        paddingTop +
+        paddingBottom +
+        header.offsetHeight +
+        headerMarginBottom +
+        controls.offsetHeight +
+        controlsMarginTop +
+        8;
+
+
+    const availableHeight =
+        Math.max(
+            280,
+            window.innerHeight -
+            reservedHeight
+        );
+
+
+    const availableWidth =
+        Math.max(
+            500,
+            window.innerWidth -
+            paddingLeft -
+            paddingRight
+        );
+
+
+    const scale =
+        Math.min(
+            availableWidth /
+            VIEW_WIDTH,
+
+            availableHeight /
+            VIEW_HEIGHT,
+
+            1
+        );
+
+
+    const displayWidth =
+        Math.floor(
+            VIEW_WIDTH *
+            scale
+        );
+
+    const displayHeight =
+        Math.floor(
+            VIEW_HEIGHT *
+            scale
+        );
+
+
+    arena.style.width =
+        `${displayWidth}px`;
+
+    arena.style.height =
+        `${displayHeight}px`;
+
+    arena.style.marginLeft =
+        "auto";
+
+    arena.style.marginRight =
+        "auto";
+
+
+    canvas.style.width =
+        "100%";
+
+    canvas.style.height =
+        "100%";
+}
+
+
+window.addEventListener(
+    "resize",
+    fitGameDisplay
+);
+
+
+// ==========================================================
 // TAMANHO REAL DO MUNDO
 // ==========================================================
 
@@ -40,6 +204,16 @@ const MAX_PLAYERS = 20;
 let roundNumber = 0;
 
 let gameReady = false;
+let assetsLoaded = false;
+let serverMatchState = null;
+let gameLoopStarted = false;
+
+// Movimento multiplayer: o cliente envia intenção de movimento
+// e o servidor confirma a posição oficial dos jogadores humanos.
+let movementSequence = 0;
+let lastMovementSentAt = 0;
+let lastMovementSignature = "";
+const MOVEMENT_SEND_INTERVAL_MS = 50;
 
 let showHitboxes = false;
 
@@ -196,15 +370,25 @@ const assets = {
 
         barrier2: null,
 
-        barrier3: null,
-
         barrier4: null,
 
         barrier5: null,
 
-        barrier6: null,
+        barrier7: null,
 
-        barrier7: null
+        barrier8: null,
+
+        barrier9: null,
+
+        barrier10: null
+    },
+
+
+    trees: {
+
+        tree1: null,
+
+        tree2: null
     },
 
 
@@ -236,11 +420,15 @@ async function loadAssets() {
 
             barrier1,
             barrier2,
-            barrier3,
             barrier4,
             barrier5,
-            barrier6,
             barrier7,
+            barrier8,
+            barrier9,
+            barrier10,
+
+            tree1,
+            tree2,
 
             tankBlue,
             tankRed,
@@ -253,11 +441,11 @@ async function loadAssets() {
             // TERRENOS
 
             loadImage(
-                "assets/terrain/mapa1.png"
+                "assets/terrain/mapa1.webp"
             ),
 
             loadImage(
-                "assets/terrain/mapa2.png"
+                "assets/terrain/mapa2.webp"
             ),
 
 
@@ -272,10 +460,6 @@ async function loadAssets() {
             ),
 
             loadImage(
-                "assets/obstacles/barreira3.png"
-            ),
-
-            loadImage(
                 "assets/obstacles/barreira4.png"
             ),
 
@@ -284,11 +468,31 @@ async function loadAssets() {
             ),
 
             loadImage(
-                "assets/obstacles/barreira6.png"
+                "assets/obstacles/barreira7.png"
             ),
 
             loadImage(
-                "assets/obstacles/barreira7.png"
+                "assets/obstacles/barreira8.png"
+            ),
+
+            loadImage(
+                "assets/obstacles/barreira9.png"
+            ),
+
+            loadImage(
+                "assets/obstacles/barreira10.png"
+            ),
+
+
+            // ÁRVORES - CAMADA DE COBERTURA
+            // Não entram na colisão do tanque.
+
+            loadImage(
+                "assets/tree/arvore1.png"
+            ),
+
+            loadImage(
+                "assets/tree/arvore2.png"
             ),
 
 
@@ -325,20 +529,30 @@ async function loadAssets() {
         assets.barriers.barrier2 =
             barrier2;
 
-        assets.barriers.barrier3 =
-            barrier3;
-
         assets.barriers.barrier4 =
             barrier4;
 
         assets.barriers.barrier5 =
             barrier5;
 
-        assets.barriers.barrier6 =
-            barrier6;
-
         assets.barriers.barrier7 =
             barrier7;
+
+        assets.barriers.barrier8 =
+            barrier8;
+
+        assets.barriers.barrier9 =
+            barrier9;
+
+        assets.barriers.barrier10 =
+            barrier10;
+
+
+        assets.trees.tree1 =
+            tree1;
+
+        assets.trees.tree2 =
+            tree2;
 
 
         assets.tanks.azul =
@@ -354,21 +568,16 @@ async function loadAssets() {
             tankDark;
 
 
-        gameReady =
+        assetsLoaded =
             true;
 
 
-        startNewRound();
-
-
         console.log(
-            "Todos os assets foram carregados."
+            "Todos os assets foram carregados. Aguardando início da sessão."
         );
 
 
-        requestAnimationFrame(
-            gameLoop
-        );
+        tryStartServerMatch();
 
     }
 
@@ -433,15 +642,72 @@ const camera = {
 };
 
 
+let spectatorTargetId =
+    null;
+
+
 function updateCamera() {
 
+    let cameraTarget =
+        localPlayer;
+
+
+    if (
+        serverMatchState &&
+        localPlayer &&
+        !localPlayer.alive
+    ) {
+
+        let spectatorTarget =
+            participants.find(
+                participant =>
+                    participant.alive &&
+                    participant.id ===
+                    spectatorTargetId
+            );
+
+
+        if (
+            !spectatorTarget
+        ) {
+
+            spectatorTarget =
+                participants.find(
+                    participant =>
+                        participant.alive
+                );
+
+
+            spectatorTargetId =
+                spectatorTarget
+                    ? spectatorTarget.id
+                    : null;
+        }
+
+
+        if (
+            spectatorTarget
+        ) {
+            cameraTarget =
+                spectatorTarget;
+        }
+    }
+
+
+    if (
+        !cameraTarget
+    ) {
+        return;
+    }
+
+
     camera.x =
-        localPlayer.x -
+        cameraTarget.x -
         VIEW_WIDTH / 2;
 
 
     camera.y =
-        localPlayer.y -
+        cameraTarget.y -
         VIEW_HEIGHT / 2;
 
 
@@ -657,15 +923,218 @@ function createParticipants() {
     participants = [];
 
 
+    if (
+        serverMatchState &&
+        Array.isArray(
+            serverMatchState.participants
+        )
+    ) {
+
+        const localClientId =
+            window.battleTankNetwork
+                ?.clientId;
+
+
+        for (
+            const source
+            of serverMatchState.participants
+        ) {
+
+            const isLocal =
+                source.id ===
+                localClientId;
+
+
+            const spawn =
+                source.spawn || {
+                    x: WORLD_WIDTH / 2,
+                    y: WORLD_HEIGHT / 2
+                };
+
+
+            const participant = {
+
+                id:
+                    source.id,
+
+                name:
+                    source.name,
+
+                type:
+                    source.type,
+
+                local:
+                    isLocal,
+
+                x:
+                    Number(
+                        source.x ??
+                        spawn.x
+                    ),
+
+                y:
+                    Number(
+                        source.y ??
+                        spawn.y
+                    ),
+
+                width:
+                    72,
+
+                height:
+                    128,
+
+                collisionRadius:
+                    29,
+
+                speed:
+                    Number(
+                        source.speed ??
+                        4.5
+                    ),
+
+                bulletSpeed:
+                    Number(
+                        source.bulletSpeed ??
+                        13
+                    ),
+
+                fireRate:
+                    Number(
+                        source.fireRate ??
+                        260
+                    ),
+
+                angle:
+                    Number(
+                        source.angle ??
+                        0
+                    ),
+
+                skin:
+                    source.skin ||
+                    "azul",
+
+                life:
+                    Number(
+                        source.life ??
+                        100
+                    ),
+
+                alive:
+                    source.alive !== false,
+
+                kills:
+                    Number(
+                        source.kills ??
+                        0
+                    )
+            };
+
+
+            if (
+                source.type ===
+                "bot"
+            ) {
+
+                const aiSource =
+                    source.ai || {};
+
+
+                participant.ai = {
+
+                    targetX:
+                        spawn.x,
+
+                    targetY:
+                        spawn.y,
+
+                    changeTargetAt:
+                        0,
+
+                    targetId:
+                        null,
+
+                    lastShot:
+                        0,
+
+                    detectionRange:
+                        Number(
+                            aiSource.detectionRange ??
+                            1200
+                        ),
+
+                    attackRange:
+                        Number(
+                            aiSource.attackRange ??
+                            900
+                        ),
+
+                    preferredDistance:
+                        Number(
+                            aiSource.preferredDistance ??
+                            360
+                        ),
+
+                    aimError:
+                        Number(
+                            aiSource.aimError ??
+                            0.04
+                        ),
+
+                    evadeDirection:
+                        Number(
+                            aiSource.evadeDirection ??
+                            1
+                        )
+                };
+            }
+
+
+            participants.push(
+                participant
+            );
+
+
+            if (
+                isLocal
+            ) {
+
+                localPlayer =
+                    participant;
+            }
+        }
+
+
+        if (
+            !localPlayer
+        ) {
+
+            console.error(
+                "Jogador local não encontrado no estado da partida.",
+                localClientId,
+                serverMatchState
+            );
+
+            return;
+        }
+
+
+        console.log(
+            "Participantes recebidos do servidor:",
+            participants
+        );
+
+        return;
+    }
+
+
+    // Fallback de desenvolvimento local.
     const randomizedSpawns =
         shuffleArray(
             spawnPoints
         );
 
-
-    // ------------------------------------------------------
-    // JOGADOR LOCAL
-    // ------------------------------------------------------
 
     localPlayer = {
 
@@ -726,10 +1195,6 @@ function createParticipants() {
         localPlayer
     );
 
-
-    // ------------------------------------------------------
-    // BOTS
-    // ------------------------------------------------------
 
     for (
         let i = 1;
@@ -810,9 +1275,6 @@ function createParticipants() {
             kills:
                 0,
 
-
-            // IA BÁSICA
-
             ai: {
 
                 targetX:
@@ -858,7 +1320,7 @@ function createParticipants() {
 
 
     console.log(
-        "Participantes:",
+        "Participantes locais:",
         participants
     );
 }
@@ -932,36 +1394,6 @@ const barrierTypes = {
     },
 
 
-    // ÁRVORE
-
-    barrier3: {
-
-        image:
-            "barrier3",
-
-        width:
-            300,
-
-        height:
-            300,
-
-        hitbox: {
-
-            x:
-                0.39,
-
-            y:
-                0.40,
-
-            width:
-                0.22,
-
-            height:
-                0.25
-        }
-    },
-
-
     // DESTROÇO DE AVIÃO
 
     barrier4: {
@@ -1022,36 +1454,6 @@ const barrierTypes = {
     },
 
 
-    // RIO
-
-    barrier6: {
-
-        image:
-            "barrier6",
-
-        width:
-            520,
-
-        height:
-            260,
-
-        hitbox: {
-
-            x:
-                0.05,
-
-            y:
-                0.33,
-
-            width:
-                0.90,
-
-            height:
-                0.35
-        }
-    },
-
-
     // DISCO VOADOR
 
     barrier7: {
@@ -1079,6 +1481,96 @@ const barrierTypes = {
             height:
                 0.60
         }
+    },
+
+
+    // FORMAÇÃO ROCHOSA
+
+    barrier8: {
+
+        image:
+            "barrier8",
+
+        width:
+            340,
+
+        height:
+            340,
+
+        hitbox: {
+
+            x:
+                0.12,
+
+            y:
+                0.22,
+
+            width:
+                0.76,
+
+            height:
+                0.58
+        }
+    },
+
+
+    // TRINCHEIRA / BARRICADA
+
+    barrier9: {
+
+        image:
+            "barrier9",
+
+        width:
+            420,
+
+        height:
+            240,
+
+        hitbox: {
+
+            x:
+                0.06,
+
+            y:
+                0.34,
+
+            width:
+                0.88,
+
+            height:
+                0.34
+        }
+    },
+
+
+    // CRATERA / DESTROÇO CIRCULAR
+
+    barrier10: {
+
+        image:
+            "barrier10",
+
+        width:
+            330,
+
+        height:
+            330,
+
+        hitbox: {
+
+            x:
+                0.16,
+
+            y:
+                0.16,
+
+            width:
+                0.68,
+
+            height:
+                0.68
+        }
     }
 };
 
@@ -1089,19 +1581,75 @@ const barrierTypeNames = [
 
     "barrier2",
 
-    "barrier3",
-
     "barrier4",
 
     "barrier5",
 
-    "barrier6",
+    "barrier7",
 
-    "barrier7"
+    "barrier8",
+
+    "barrier9",
+
+    "barrier10"
+];
+
+
+// ==========================================================
+// ÁRVORES / COBERTURA DE EMBOSCADA
+// ==========================================================
+//
+// As árvores são propositalmente separadas das barreiras:
+// - o tanque pode atravessar a copa;
+// - não existe colisão com a árvore;
+// - a copa é desenhada DEPOIS dos tanques;
+// - para adversários, o tanque fica escondido;
+// - quando o jogador local entra na copa, ela fica levemente
+//   transparente apenas na tela dele para permitir orientação.
+// ==========================================================
+
+const treeTypes = {
+
+    tree1: {
+
+        image:
+            "tree1",
+
+        width:
+            300,
+
+        height:
+            300
+    },
+
+
+    tree2: {
+
+        image:
+            "tree2",
+
+        width:
+            520,
+
+        height:
+            260
+    }
+};
+
+
+const treeTypeNames = [
+
+    "tree1",
+
+    "tree1",
+
+    "tree2"
 ];
 
 
 let barriers = [];
+
+let trees = [];
 
 
 // ==========================================================
@@ -1253,7 +1801,7 @@ function generateWorldObstacles() {
     // podemos usar dezenas de obstáculos.
 
     const desiredQuantity =
-        65;
+        52;
 
 
     let attempts =
@@ -1399,6 +1947,196 @@ function generateWorldObstacles() {
     console.log(
         "Obstáculos gerados:",
         barriers.length
+    );
+}
+
+
+// ==========================================================
+// GERAR ÁRVORES DO MUNDO
+// ==========================================================
+//
+// Árvores NÃO entram na lista `barriers`.
+// Portanto não participam de nenhuma colisão.
+// ==========================================================
+
+function generateWorldTrees() {
+
+    trees = [];
+
+
+    const desiredQuantity =
+        13;
+
+
+    let attempts =
+        0;
+
+
+    const maximumAttempts =
+        3000;
+
+
+    const margin =
+        70;
+
+
+    while (
+
+        trees.length <
+        desiredQuantity
+
+        &&
+
+        attempts <
+        maximumAttempts
+
+    ) {
+
+        attempts++;
+
+
+        const typeName =
+
+            treeTypeNames[
+
+                Math.floor(
+
+                    Math.random() *
+                    treeTypeNames.length
+                )
+            ];
+
+
+        const config =
+            treeTypes[
+                typeName
+            ];
+
+
+        const candidate = {
+
+            type:
+                typeName,
+
+            x:
+
+                margin +
+
+                Math.random() *
+
+                (
+                    WORLD_WIDTH -
+                    config.width -
+                    margin * 2
+                ),
+
+            y:
+
+                margin +
+
+                Math.random() *
+
+                (
+                    WORLD_HEIGHT -
+                    config.height -
+                    margin * 2
+                ),
+
+            width:
+                config.width,
+
+            height:
+                config.height
+        };
+
+
+        // Evitar que alguém nasça completamente coberto.
+
+        if (
+            isNearSpawn(
+                candidate
+            )
+        ) {
+
+            continue;
+        }
+
+
+        // Não desenhar copas por cima de obstáculos sólidos.
+
+        let blocked =
+            false;
+
+
+        for (
+            const barrier
+            of barriers
+        ) {
+
+            if (
+                rectanglesOverlap(
+                    candidate,
+                    barrier,
+                    20
+                )
+            ) {
+
+                blocked =
+                    true;
+
+                break;
+            }
+        }
+
+
+        if (
+            blocked
+        ) {
+
+            continue;
+        }
+
+
+        // Evitar árvores empilhadas umas nas outras.
+
+        for (
+            const existing
+            of trees
+        ) {
+
+            if (
+                rectanglesOverlap(
+                    candidate,
+                    existing,
+                    -25
+                )
+            ) {
+
+                blocked =
+                    true;
+
+                break;
+            }
+        }
+
+
+        if (
+            blocked
+        ) {
+
+            continue;
+        }
+
+
+        trees.push(
+            candidate
+        );
+    }
+
+
+    console.log(
+        "Árvores de cobertura geradas:",
+        trees.length
     );
 }
 
@@ -1762,7 +2500,16 @@ window.addEventListener("keydown", event => {
         !event.repeat
     ) {
 
-        startNewRound();
+        if (
+            serverMatchState
+        ) {
+            showGameMessage(
+                "NOVA RODADA CONTROLADA PELO PROFESSOR"
+            );
+        }
+        else {
+            startNewRound();
+        }
     }
 
 
@@ -1803,15 +2550,7 @@ window.addEventListener("keyup", event => {
 // O corpo do tanque aponta para a direção do deslocamento.
 // ==========================================================
 
-function updateLocalPlayer() {
-
-    if (
-        !localPlayer ||
-        !localPlayer.alive
-    ) {
-        return;
-    }
-
+function getCurrentMoveInput() {
 
     let moveX = 0;
     let moveY = 0;
@@ -1849,6 +2588,526 @@ function updateLocalPlayer() {
     }
 
 
+    const length =
+        Math.hypot(
+            moveX,
+            moveY
+        );
+
+
+    if (
+        length > 0
+    ) {
+        moveX /= length;
+        moveY /= length;
+    }
+
+
+    return {
+        moveX,
+        moveY
+    };
+}
+
+
+function sendMovementIntent(
+    moveX,
+    moveY
+) {
+
+    if (
+        !serverMatchState ||
+        !window.battleTankNetwork ||
+        window.battleTankNetwork.role !== "player"
+    ) {
+        return;
+    }
+
+
+    const now =
+        performance.now();
+
+
+    const signature =
+        `${moveX.toFixed(3)},${moveY.toFixed(3)}`;
+
+
+    const changed =
+        signature !==
+        lastMovementSignature;
+
+
+    if (
+        !changed &&
+        now - lastMovementSentAt <
+        MOVEMENT_SEND_INTERVAL_MS
+    ) {
+        return;
+    }
+
+
+    movementSequence++;
+
+
+    window.battleTankNetwork
+        .sendPlayerInput(
+            moveX,
+            moveY,
+            movementSequence
+        );
+
+
+    lastMovementSignature =
+        signature;
+
+
+    lastMovementSentAt =
+        now;
+}
+
+
+function applyServerMatchState(
+    detail
+) {
+
+    if (
+        !detail ||
+        !Array.isArray(
+            detail.players
+        )
+    ) {
+        return;
+    }
+
+
+    if (
+        serverMatchState &&
+        detail.match_id &&
+        serverMatchState.match_id &&
+        detail.match_id !==
+        serverMatchState.match_id
+    ) {
+        return;
+    }
+
+
+    for (
+        const state
+        of detail.players
+    ) {
+
+        const participant =
+            participants.find(
+                item =>
+                    item.id ===
+                    state.id
+            );
+
+
+        if (
+            !participant
+        ) {
+            continue;
+        }
+
+
+        const serverX =
+            Number(
+                state.x
+            );
+
+
+        const serverY =
+            Number(
+                state.y
+            );
+
+
+        const serverAngle =
+            Number(
+                state.angle
+            );
+
+
+        if (
+            participant.local &&
+            participant.type === "human"
+        ) {
+
+            const distance =
+                Math.hypot(
+                    serverX -
+                    participant.x,
+
+                    serverY -
+                    participant.y
+                );
+
+
+            // Predição local para resposta imediata.
+            // Se houver divergência grande, o servidor vence.
+            if (
+                distance >
+                90
+            ) {
+                participant.x =
+                    serverX;
+
+                participant.y =
+                    serverY;
+            }
+            else {
+                participant.x +=
+                    (
+                        serverX -
+                        participant.x
+                    )
+                    *
+                    0.14;
+
+                participant.y +=
+                    (
+                        serverY -
+                        participant.y
+                    )
+                    *
+                    0.14;
+            }
+        }
+        else {
+
+            // Jogadores remotos são suavizados.
+            participant.x +=
+                (
+                    serverX -
+                    participant.x
+                )
+                *
+                0.45;
+
+            participant.y +=
+                (
+                    serverY -
+                    participant.y
+                )
+                *
+                0.45;
+        }
+
+
+        if (
+            Number.isFinite(
+                serverAngle
+            )
+        ) {
+            participant.angle =
+                serverAngle;
+        }
+
+
+        const wasAlive =
+            participant.alive;
+
+
+        if (
+            typeof state.alive ===
+            "boolean"
+        ) {
+            participant.alive =
+                state.alive;
+        }
+
+
+        if (
+            participant.local &&
+            wasAlive &&
+            !participant.alive
+        ) {
+
+            spectatorTargetId =
+                null;
+
+
+            showGameMessage(
+                "VOCÊ FOI ELIMINADO • MODO ESPECTADOR"
+            );
+        }
+
+
+        if (
+            Number.isFinite(
+                Number(
+                    state.life
+                )
+            )
+        ) {
+            participant.life =
+                Number(
+                    state.life
+                );
+        }
+
+
+        if (
+            Number.isFinite(
+                Number(
+                    state.kills
+                )
+            )
+        ) {
+            participant.kills =
+                Number(
+                    state.kills
+                );
+        }
+    }
+
+    // ======================================================
+    // PROJÉTEIS OFICIAIS DO SERVIDOR
+    // ======================================================
+    //
+    // Este bloco PRECISA ficar aqui, pois `detail` é o
+    // snapshot recebido no evento match_state.
+    //
+    // A versão anterior colocou este trecho por engano em
+    // updateLocalPlayer(), onde `detail` não existe. Isso
+    // gerava ReferenceError assim que o aluno tentava andar
+    // e parava o requestAnimationFrame.
+    // ======================================================
+
+    if (
+        Array.isArray(
+            detail.bullets
+        )
+    ) {
+
+        bullets.length =
+            0;
+
+
+        for (
+            const serverBullet
+            of detail.bullets
+        ) {
+
+            bullets.push({
+                id:
+                    serverBullet.id,
+
+                ownerId:
+                    serverBullet.owner_id,
+
+                x:
+                    Number(
+                        serverBullet.x
+                    ),
+
+                y:
+                    Number(
+                        serverBullet.y
+                    ),
+
+                angle:
+                    Number(
+                        serverBullet.angle
+                    ),
+
+                speed:
+                    Number(
+                        serverBullet.speed
+                    ),
+
+                radius:
+                    Number(
+                        serverBullet.radius
+                    ) || 4,
+
+                serverControlled:
+                    true
+            });
+        }
+    }
+
+}
+
+
+function showMatchEndedOverlay(
+    detail
+) {
+
+    gameReady =
+        false;
+
+
+    const existing =
+        document.getElementById(
+            "battleMatchEndedOverlay"
+        );
+
+
+    if (
+        existing
+    ) {
+        existing.remove();
+    }
+
+
+    const overlay =
+        document.createElement(
+            "div"
+        );
+
+
+    overlay.id =
+        "battleMatchEndedOverlay";
+
+
+    overlay.style.position =
+        "fixed";
+
+    overlay.style.inset =
+        "0";
+
+    overlay.style.zIndex =
+        "9999";
+
+    overlay.style.display =
+        "flex";
+
+    overlay.style.alignItems =
+        "center";
+
+    overlay.style.justifyContent =
+        "center";
+
+    overlay.style.background =
+        "rgba(3, 6, 3, 0.86)";
+
+    overlay.style.color =
+        "#ffffff";
+
+    overlay.style.fontFamily =
+        "Arial, Helvetica, sans-serif";
+
+    overlay.style.textAlign =
+        "center";
+
+
+    const winner =
+        detail?.winner;
+
+
+    const title =
+        winner
+            ? "FIM DA BATALHA"
+            : "PARTIDA ENCERRADA";
+
+
+    const subtitle =
+        winner
+            ? `VENCEDOR: ${winner.name}`
+            : "ENCERRADA PELO PROFESSOR";
+
+
+    overlay.innerHTML =
+        `
+            <div style="
+                width:min(620px,90vw);
+                padding:42px;
+                border:1px solid #5b6a5b;
+                border-radius:14px;
+                background:#141a14;
+                box-shadow:0 25px 70px rgba(0,0,0,.65);
+            ">
+                <div style="
+                    font-size:13px;
+                    letter-spacing:3px;
+                    color:#8da08d;
+                    margin-bottom:12px;
+                ">
+                    BATTLE TANK EMTI
+                </div>
+
+                <h2 style="
+                    margin:0 0 14px;
+                    font-size:34px;
+                    letter-spacing:2px;
+                ">
+                    ${title}
+                </h2>
+
+                <div style="
+                    font-size:22px;
+                    font-weight:bold;
+                    color:#dce6d9;
+                ">
+                    ${subtitle}
+                </div>
+
+                ${
+                    winner
+                        ? `
+                            <div style="
+                                margin-top:12px;
+                                color:#9faa9f;
+                            ">
+                                ${winner.kills ?? 0} eliminações
+                            </div>
+                        `
+                        : ""
+                }
+            </div>
+        `;
+
+
+    document.body.appendChild(
+        overlay
+    );
+}
+
+
+function updateLocalPlayer() {
+
+    if (
+        !localPlayer ||
+        !localPlayer.alive
+    ) {
+
+        if (
+            serverMatchState
+        ) {
+            sendMovementIntent(
+                0,
+                0
+            );
+        }
+
+        return;
+    }
+
+
+    const input =
+        getCurrentMoveInput();
+
+
+    const moveX =
+        input.moveX;
+
+
+    const moveY =
+        input.moveY;
+
+
+    if (
+        serverMatchState
+    ) {
+        sendMovementIntent(
+            moveX,
+            moveY
+        );
+    }
+
+
     if (
         moveX === 0 &&
         moveY === 0
@@ -1857,18 +3116,8 @@ function updateLocalPlayer() {
     }
 
 
-    const length =
-        Math.hypot(
-            moveX,
-            moveY
-        );
-
-
-    moveX /= length;
-    moveY /= length;
-
-
-    // A imagem original do tanque aponta para cima.
+    // Predição local: deixa o controle responsivo.
+    // A posição oficial continua sendo corrigida pelo servidor.
     localPlayer.angle =
         Math.atan2(
             moveY,
@@ -1888,8 +3137,6 @@ function updateLocalPlayer() {
         localPlayer.speed;
 
 
-    // Movimento por eixo permite deslizar ao longo de paredes
-    // sem atravessar barreiras ou outros tanques.
     if (
         stepX !== 0 &&
         canParticipantMoveTo(
@@ -2608,6 +3855,48 @@ function shoot() {
         now;
 
 
+    // Em multiplayer o servidor cria e valida o projétil.
+    if (
+        serverMatchState &&
+        window.battleTankNetwork
+    ) {
+
+        window.battleTankNetwork
+            .sendPlayerShoot();
+
+
+        // Feedback imediato do cano, sem criar dano local.
+        const shotAngle =
+            localPlayer.angle -
+            Math.PI / 2;
+
+
+        const barrelLength =
+            localPlayer.height /
+            2
+            +
+            5;
+
+
+        createMuzzleParticles(
+            localPlayer.x +
+            Math.cos(
+                shotAngle
+            ) *
+            barrelLength,
+
+            localPlayer.y +
+            Math.sin(
+                shotAngle
+            ) *
+            barrelLength
+        );
+
+
+        return;
+    }
+
+
     const shotAngle =
         localPlayer.angle -
         Math.PI / 2;
@@ -2625,6 +3914,15 @@ function shoot() {
 // ==========================================================
 
 function updateBullets() {
+
+    // Em partidas online, posição, colisão, dano e morte
+    // das balas são controlados exclusivamente pelo FastAPI.
+    if (
+        serverMatchState
+    ) {
+        return;
+    }
+
 
     for (
 
@@ -3061,10 +4359,104 @@ function startNewRound() {
     roundNumber++;
 
 
-    chooseTerrain();
+    if (
+        serverMatchState
+    ) {
+
+        currentTerrainName =
+            serverMatchState.terrain ||
+            "mapa1";
 
 
-    generateWorldObstacles();
+        barriers =
+            Array.isArray(
+                serverMatchState.obstacles
+            )
+                ? serverMatchState.obstacles.map(
+                    obstacle => ({
+                        type:
+                            obstacle.type,
+
+                        x:
+                            Number(
+                                obstacle.x
+                            ),
+
+                        y:
+                            Number(
+                                obstacle.y
+                            ),
+
+                        width:
+                            Number(
+                                obstacle.width
+                            ),
+
+                        height:
+                            Number(
+                                obstacle.height
+                            )
+                    })
+                )
+                : [];
+
+
+        trees =
+            Array.isArray(
+                serverMatchState.trees
+            )
+                ? serverMatchState.trees.map(
+                    tree => ({
+                        type:
+                            tree.type,
+
+                        x:
+                            Number(
+                                tree.x
+                            ),
+
+                        y:
+                            Number(
+                                tree.y
+                            ),
+
+                        width:
+                            Number(
+                                tree.width
+                            ),
+
+                        height:
+                            Number(
+                                tree.height
+                            )
+                    })
+                )
+                : [];
+
+
+        console.log(
+            "Arena recebida do servidor:",
+            {
+                matchId:
+                    serverMatchState.match_id,
+                terrain:
+                    currentTerrainName,
+                obstacles:
+                    barriers.length,
+                trees:
+                    trees.length
+            }
+        );
+    }
+
+    else {
+
+        chooseTerrain();
+
+        generateWorldObstacles();
+
+        generateWorldTrees();
+    }
 
 
     createParticipants();
@@ -3081,8 +4473,6 @@ function startNewRound() {
     score =
         0;
 
-
-    // inicializar destinos dos bots
 
     for (
         const participant
@@ -3107,9 +4497,14 @@ function startNewRound() {
     updateHUD();
 
 
-    showGameMessage(
+    const roomText =
+        serverMatchState
+            ? `SESSÃO ${serverMatchState.room_code}`
+            : `RODADA ${roundNumber}`;
 
-        `RODADA ${roundNumber} - 20 PARTICIPANTES`
+
+    showGameMessage(
+        `${roomText} - ${participants.length} PARTICIPANTES`
     );
 }
 
@@ -3118,9 +4513,14 @@ function startNewRound() {
 // TERRENO
 // ==========================================================
 //
-// mapa1 / mapa2 são usados como textura repetida.
-// Quando tivermos o mapa gigante definitivo,
-// podemos trocar este sistema.
+// mapa1 / mapa2 agora representam o terreno INTEIRO do mundo.
+//
+// Antes a mesma imagem era repetida lado a lado. Como a imagem
+// não é uma textura seamless, as bordas ficavam visíveis.
+//
+// Agora recortamos somente a parte da imagem correspondente à
+// posição da câmera e ampliamos esse recorte para o Canvas.
+// Resultado: uma única imagem contínua, sem emendas.
 // ==========================================================
 
 function drawTerrain() {
@@ -3131,90 +4531,112 @@ function drawTerrain() {
         ];
 
 
-    const tileWidth =
-        1672;
-
-
-    const tileHeight =
-        941;
-
-
-    const startX =
-
-        Math.floor(
-
-            camera.x /
-            tileWidth
-
-        )
-
-        *
-
-        tileWidth;
-
-
-    const startY =
-
-        Math.floor(
-
-            camera.y /
-            tileHeight
-
-        )
-
-        *
-
-        tileHeight;
-
-
-    for (
-
-        let worldY =
-            startY;
-
-        worldY <
-        camera.y +
-        VIEW_HEIGHT +
-        tileHeight;
-
-        worldY +=
-        tileHeight
-
+    if (
+        !image ||
+        !image.complete ||
+        image.naturalWidth <= 0 ||
+        image.naturalHeight <= 0
     ) {
 
-        for (
+        ctx.fillStyle =
+            "#263b27";
 
-            let worldX =
-                startX;
+        ctx.fillRect(
+            0,
+            0,
+            VIEW_WIDTH,
+            VIEW_HEIGHT
+        );
 
-            worldX <
-            camera.x +
-            VIEW_WIDTH +
-            tileWidth;
-
-            worldX +=
-            tileWidth
-
-        ) {
-
-            ctx.drawImage(
-
-                image,
-
-                worldToScreenX(
-                    worldX
-                ),
-
-                worldToScreenY(
-                    worldY
-                ),
-
-                tileWidth,
-
-                tileHeight
-            );
-        }
+        return;
     }
+
+
+    // Os novos mapas têm exatamente 6144 x 3456,
+    // a mesma resolução lógica do mundo. Portanto a câmera
+    // recorta pixels reais do mapa, sem ampliar o terreno.
+    const scaleX =
+        image.naturalWidth /
+        WORLD_WIDTH;
+
+
+    const scaleY =
+        image.naturalHeight /
+        WORLD_HEIGHT;
+
+
+    const sourceWidth =
+        Math.round(
+            VIEW_WIDTH *
+            scaleX
+        );
+
+
+    const sourceHeight =
+        Math.round(
+            VIEW_HEIGHT *
+            scaleY
+        );
+
+
+    const maxSourceX =
+        Math.max(
+            0,
+            image.naturalWidth -
+            sourceWidth
+        );
+
+
+    const maxSourceY =
+        Math.max(
+            0,
+            image.naturalHeight -
+            sourceHeight
+        );
+
+
+    const sourceX =
+        Math.max(
+            0,
+            Math.min(
+                maxSourceX,
+                Math.round(
+                    camera.x *
+                    scaleX
+                )
+            )
+        );
+
+
+    const sourceY =
+        Math.max(
+            0,
+            Math.min(
+                maxSourceY,
+                Math.round(
+                    camera.y *
+                    scaleY
+                )
+            )
+        );
+
+
+    // Em escala 1:1 não precisamos borrar pixels vizinhos.
+    ctx.imageSmoothingEnabled =
+        false;
+
+
+    ctx.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        VIEW_WIDTH,
+        VIEW_HEIGHT
+    );
 }
 
 
@@ -3325,6 +4747,196 @@ function drawBarriers() {
 
 
 // ==========================================================
+// DESENHAR ÁRVORES / COPAS
+// ==========================================================
+//
+// Esta função é chamada DEPOIS de tanques e tiros.
+// Assim a copa cobre visualmente quem estiver embaixo.
+//
+// Para o jogador local, a copa fica semitransparente quando
+// ele está dentro dela. Isso não afeta o que os adversários veem.
+// ==========================================================
+
+function localPlayerUnderTree(
+    tree
+) {
+
+    if (
+        !localPlayer ||
+        !localPlayer.alive
+    ) {
+
+        return false;
+    }
+
+
+    const paddingX =
+        tree.width *
+        0.10;
+
+
+    const paddingY =
+        tree.height *
+        0.10;
+
+
+    return (
+
+        localPlayer.x >=
+        tree.x +
+        paddingX
+
+        &&
+
+        localPlayer.x <=
+        tree.x +
+        tree.width -
+        paddingX
+
+        &&
+
+        localPlayer.y >=
+        tree.y +
+        paddingY
+
+        &&
+
+        localPlayer.y <=
+        tree.y +
+        tree.height -
+        paddingY
+    );
+}
+
+
+function drawTrees() {
+
+    for (
+        const tree
+        of trees
+    ) {
+
+        const config =
+            treeTypes[
+                tree.type
+            ];
+
+
+        if (
+            !config
+        ) {
+
+            continue;
+        }
+
+
+        const image =
+            assets.trees[
+                config.image
+            ];
+
+
+        if (
+            !image
+        ) {
+
+            continue;
+        }
+
+
+        const screenX =
+            worldToScreenX(
+                tree.x
+            );
+
+
+        const screenY =
+            worldToScreenY(
+                tree.y
+            );
+
+
+        if (
+
+            screenX +
+            tree.width <
+            0
+
+            ||
+
+            screenY +
+            tree.height <
+            0
+
+            ||
+
+            screenX >
+            VIEW_WIDTH
+
+            ||
+
+            screenY >
+            VIEW_HEIGHT
+
+        ) {
+
+            continue;
+        }
+
+
+        ctx.save();
+
+
+        // Fora da copa: opacidade total.
+        // Debaixo da copa: só o próprio jogador ganha visão parcial.
+
+        if (
+            localPlayerUnderTree(
+                tree
+            )
+        ) {
+
+            ctx.globalAlpha =
+                0.58;
+        }
+
+
+        ctx.shadowColor =
+            "rgba(0,0,0,0.42)";
+
+
+        ctx.shadowBlur =
+            10;
+
+
+        ctx.shadowOffsetX =
+            6;
+
+
+        ctx.shadowOffsetY =
+            8;
+
+
+        ctx.drawImage(
+
+            image,
+
+            screenX,
+
+            screenY,
+
+            tree.width,
+
+            tree.height
+        );
+
+
+        ctx.restore();
+    }
+}
+
+
+// ==========================================================
 // DESENHAR PARTICIPANTE
 // ==========================================================
 
@@ -3384,6 +4996,21 @@ function drawParticipant(
         assets.tanks[
             participant.skin
         ];
+
+
+    // Segurança: um asset ausente não pode congelar o game loop.
+    if (
+        !image
+    ) {
+
+        console.error(
+            "[GAME] Asset de tanque ausente:",
+            participant.skin,
+            participant
+        );
+
+        return;
+    }
 
 
     ctx.save();
@@ -4477,7 +6104,13 @@ function updateHUD() {
     ) {
 
         scoreValue.textContent =
-            score;
+            serverMatchState
+                ? (
+                    Number(
+                        localPlayer.kills
+                    ) || 0
+                ) * 100
+                : score;
     }
 }
 
@@ -4565,6 +6198,11 @@ function draw() {
     drawParticipants();
 
 
+    // A copa é uma camada visual de cobertura.
+    // Quem está embaixo fica escondido para quem está de fora.
+    drawTrees();
+
+
     drawParticles();
 
 
@@ -4601,7 +6239,13 @@ function update() {
     updateLocalPlayer();
 
 
-    updateBots();
+    // Em partidas online, os bots são autoridade do servidor.
+    // O modo local preserva a IA antiga para testes offline.
+    if (
+        !serverMatchState
+    ) {
+        updateBots();
+    }
 
 
     updateBullets();
@@ -4631,10 +6275,27 @@ function gameLoop() {
     }
 
 
-    update();
+    try {
 
+        update();
 
-    draw();
+        draw();
+    }
+    catch (error) {
+
+        console.error(
+            "[BATTLE TANK] Erro no game loop:",
+            error
+        );
+
+        showGameMessage(
+            "ERRO NO JOGO - CONSULTE O CONSOLE"
+        );
+
+        gameReady = false;
+
+        return;
+    }
 
 
     requestAnimationFrame(
@@ -4715,7 +6376,101 @@ function drawLoadingError(
 
 
 // ==========================================================
+// PARTIDA RECEBIDA DO SERVIDOR
+// ==========================================================
+
+function tryStartServerMatch() {
+
+    fitGameDisplay();
+
+
+    if (
+        !assetsLoaded ||
+        !serverMatchState
+    ) {
+        return;
+    }
+
+
+    if (
+        gameReady
+    ) {
+        return;
+    }
+
+
+    gameReady =
+        true;
+
+
+    startNewRound();
+
+
+    if (
+        !gameLoopStarted
+    ) {
+
+        gameLoopStarted =
+            true;
+
+
+        requestAnimationFrame(
+            gameLoop
+        );
+    }
+}
+
+
+if (
+    window.battleTankNetwork
+) {
+
+    window.battleTankNetwork.addEventListener(
+        "match-start",
+        event => {
+
+            serverMatchState =
+                event.detail;
+
+
+            console.log(
+                "[GAME] Estado inicial da partida recebido:",
+                serverMatchState
+            );
+
+
+            tryStartServerMatch();
+        }
+    );
+
+
+    window.battleTankNetwork.addEventListener(
+        "match-state",
+        event => {
+
+            applyServerMatchState(
+                event.detail
+            );
+        }
+    );
+
+
+    window.battleTankNetwork.addEventListener(
+        "match-ended",
+        event => {
+
+            showMatchEndedOverlay(
+                event.detail
+            );
+        }
+    );
+}
+
+
+// ==========================================================
 // INICIAR
 // ==========================================================
+
+fitGameDisplay();
 
 loadAssets();

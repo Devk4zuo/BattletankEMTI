@@ -33,7 +33,8 @@ class BattleTankNetwork extends EventTarget {
             return;
         }
 
-        const url = this.getWebSocketUrl();
+        const url =
+            this.getWebSocketUrl();
 
         console.log(
             "[NETWORK] Conectando:",
@@ -122,189 +123,143 @@ class BattleTankNetwork extends EventTarget {
     }
 
     handleMessage(data) {
-        // Não polui mais o console com um "pong" a cada 10 segundos.
-        if (data.type !== "pong") {
+        if (
+            data.type !==
+            "pong"
+        ) {
             console.log(
                 "[SERVER]",
                 data
             );
         }
 
-        switch (
-            data.type
+        const eventMap = {
+            server_ready:
+                "server-ready",
+            room_created:
+                "room-created",
+            room_joined:
+                "room-joined",
+            room_state:
+                "room-state",
+            programming_started:
+                "programming-started",
+            loadout_saved:
+                "loadout-saved",
+            loadout_locked:
+                "loadout-locked",
+            countdown_started:
+                "countdown-started",
+            match_start:
+                "match-start",
+            match_state:
+                "match-state",
+            match_ended:
+                "match-ended",
+            join_error:
+                "join-error",
+            room_error:
+                "room-error",
+            room_closed:
+                "room-closed",
+            room_left:
+                "room-left"
+        };
+
+        if (
+            data.type ===
+            "server_ready"
         ) {
-            case "server_ready":
-                this.clientId =
-                    data.client_id;
+            this.clientId =
+                data.client_id;
 
-                console.log(
-                    "================================="
-                );
-                console.log(
-                    "BATTLE TANK EMTI SERVER ONLINE"
-                );
-                console.log(
-                    "CLIENT ID:",
-                    this.clientId
-                );
-                console.log(
-                    "================================="
-                );
-
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "server-ready",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "room_created":
-                this.roomCode =
-                    data.room_code;
-
-                this.role =
-                    "host";
-
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "room-created",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "room_joined":
-                this.roomCode =
-                    data.room_code;
-
-                this.role =
-                    "player";
-
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "room-joined",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "room_state":
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "room-state",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "match_start":
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "match-start",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "join_error":
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "join-error",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "room_error":
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "room-error",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "room_closed":
-                this.roomCode =
-                    null;
-
-                this.role =
-                    null;
-
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "room-closed",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "room_left":
-                this.roomCode =
-                    null;
-
-                this.role =
-                    null;
-
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "room-left",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
-
-                break;
-
-            case "pong":
-                break;
-
-            default:
-                this.dispatchEvent(
-                    new CustomEvent(
-                        "message",
-                        {
-                            detail:
-                                data
-                        }
-                    )
-                );
+            console.log(
+                "================================="
+            );
+            console.log(
+                "BATTLE TANK EMTI SERVER ONLINE"
+            );
+            console.log(
+                "CLIENT ID:",
+                this.clientId
+            );
+            console.log(
+                "================================="
+            );
         }
+
+        if (
+            data.type ===
+            "room_created"
+        ) {
+            this.roomCode =
+                data.room_code;
+
+            this.role =
+                "host";
+        }
+
+        if (
+            data.type ===
+            "room_joined"
+        ) {
+            this.roomCode =
+                data.room_code;
+
+            this.role =
+                "player";
+        }
+
+        if (
+            data.type ===
+            "room_closed" ||
+            data.type ===
+            "room_left"
+        ) {
+            this.roomCode =
+                null;
+
+            this.role =
+                null;
+        }
+
+        if (
+            data.type ===
+            "pong"
+        ) {
+            return;
+        }
+
+        const eventName =
+            eventMap[
+                data.type
+            ];
+
+        if (
+            eventName
+        ) {
+            this.dispatchEvent(
+                new CustomEvent(
+                    eventName,
+                    {
+                        detail:
+                            data
+                    }
+                )
+            );
+
+            return;
+        }
+
+        this.dispatchEvent(
+            new CustomEvent(
+                "message",
+                {
+                    detail:
+                        data
+                }
+            )
+        );
     }
 
     send(data) {
@@ -337,6 +292,52 @@ class BattleTankNetwork extends EventTarget {
         );
     }
 
+    getLocalLoadout() {
+        const defaults = {
+            speed: 4.5,
+            bulletSpeed: 13,
+            fireRate: 260,
+            upgrades: {
+                motor2: false,
+                bullet2: false,
+                cannon2: false
+            }
+        };
+
+        try {
+            const saved =
+                localStorage.getItem(
+                    "battleTankPlayer"
+                );
+
+            if (
+                !saved
+            ) {
+                return defaults;
+            }
+
+            const data =
+                JSON.parse(saved);
+
+            return {
+                ...defaults,
+                ...data,
+                upgrades: {
+                    ...defaults.upgrades,
+                    ...(data.upgrades || {})
+                }
+            };
+        }
+        catch (error) {
+            console.warn(
+                "[NETWORK] Não foi possível ler o loadout local:",
+                error
+            );
+
+            return defaults;
+        }
+    }
+
     joinRoom(
         roomCode,
         playerName
@@ -348,16 +349,92 @@ class BattleTankNetwork extends EventTarget {
                 room_code:
                     roomCode,
                 player_name:
-                    playerName
+                    playerName,
+                loadout:
+                    this.getLocalLoadout()
+            }
+        );
+    }
+
+    startProgramming() {
+        return this.send(
+            {
+                type:
+                    "start_programming"
+            }
+        );
+    }
+
+    updateLoadout() {
+        return this.send(
+            {
+                type:
+                    "update_loadout",
+                loadout:
+                    this.getLocalLoadout()
+            }
+        );
+    }
+
+    setReady(
+        ready = true
+    ) {
+        return this.send(
+            {
+                type:
+                    "set_ready",
+                ready:
+                    Boolean(ready)
+            }
+        );
+    }
+
+    startBattle() {
+        return this.send(
+            {
+                type:
+                    "start_battle"
             }
         );
     }
 
     startRoom() {
+        return this.startBattle();
+    }
+
+    sendPlayerInput(
+        moveX,
+        moveY,
+        sequence = 0
+    ) {
         return this.send(
             {
                 type:
-                    "start_room"
+                    "player_input",
+                move_x:
+                    Number(moveX) || 0,
+                move_y:
+                    Number(moveY) || 0,
+                sequence:
+                    Number(sequence) || 0
+            }
+        );
+    }
+
+    sendPlayerShoot() {
+        return this.send(
+            {
+                type:
+                    "player_shoot"
+            }
+        );
+    }
+
+    endMatch() {
+        return this.send(
+            {
+                type:
+                    "end_match"
             }
         );
     }
