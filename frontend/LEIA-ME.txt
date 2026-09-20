@@ -1,0 +1,19 @@
+BATTLE TANK EMTI - FRONTEND V6
+Professor Kazuo
+
+A programação do tanque agora é uma fase fechada antes da arena.
+O laboratório não é um menu disponível durante a batalha.
+
+Arquivos do laboratório:
+- lab.html
+- lab.css
+- lab.js
+- javascript_worker_v6.js
+- python_worker_v6.mjs
+
+Fluxo:
+LOBBY -> PROGRAMAÇÃO -> FINALIZAR -> AGUARDANDO -> ARENA
+
+A cor do tanque é escolhida exclusivamente no lobby.
+A linguagem é escolhida exclusivamente para a partida atual.
+O aluno pode validar até 5 funções permitidas no mesmo programa.

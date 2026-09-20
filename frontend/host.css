@@ -88,17 +88,55 @@ input {
 
 .create-panel {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 28px;
+    gap: 18px;
     padding: 32px;
+    text-align: center;
+}
+
+.title-banner {
+    display: block;
+    width: 100%;
+    max-width: 760px;
+    border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
 }
 
 .create-panel p {
     max-width: 720px;
-    margin: 9px 0 0;
+    margin: 9px auto 0;
     line-height: 1.5;
     color: rgba(244, 246, 241, 0.66);
+}
+
+.create-panel .toggle-bots-button {
+    width: auto;
+    margin-top: 0;
+}
+
+.create-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 560px;
+}
+
+.create-actions-row .toggle-bots-button,
+.create-actions-row .primary-button {
+    flex: 1 1 220px;
+    height: 56px;
+}
+
+.bots-hint {
+    margin: -8px 0 0;
+    max-width: 480px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(244, 246, 241, 0.5);
 }
 
 .primary-button,
@@ -319,6 +357,40 @@ input {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 14px;
     font-weight: 900;
+}
+
+.toggle-bots-button {
+    margin-top: 15px;
+    width: 100%;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    background: rgba(200, 239, 173, 0.12);
+    color: #c8efad;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.toggle-bots-button:hover:not(:disabled) {
+    background: rgba(200, 239, 173, 0.2);
+}
+
+.toggle-bots-button.bots-disabled {
+    background: rgba(255, 138, 138, 0.12);
+    border-color: rgba(255, 138, 138, 0.3);
+    color: #ffb3b3;
+}
+
+.toggle-bots-button.bots-disabled:hover:not(:disabled) {
+    background: rgba(255, 138, 138, 0.2);
+}
+
+.toggle-bots-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.36;
 }
 
 .ready-summary {

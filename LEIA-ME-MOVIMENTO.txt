@@ -1,0 +1,94 @@
+BATTLE TANK EMTI - MOVIMENTO MULTIPLAYER V1
+
+OBJETIVO DESTA ETAPA
+====================
+Nesta versão, o movimento dos JOGADORES HUMANOS passa a ter o servidor FastAPI como autoridade.
+
+Antes:
+- cada navegador movimentava somente seu próprio jogador;
+- os outros jogadores humanos não recebiam movimento real;
+- a arena inicial era compartilhada, mas a batalha ainda era local.
+
+Agora:
+- o navegador envia apenas a intenção de movimento (WASD/setas);
+- o FastAPI calcula a posição oficial;
+- o servidor valida limites do mundo e obstáculos;
+- o servidor valida colisão entre jogadores humanos;
+- o servidor envia snapshots da posição para toda a sala;
+- os outros alunos passam a ver os jogadores humanos se movimentando;
+- o cliente mantém predição local para o controle não parecer pesado;
+- o servidor corrige divergências de posição.
+
+CONTROLE DO PROFESSOR
+=====================
+A Central do Professor agora possui o botão:
+
+ENCERRAR PARTIDA
+
+Ao confirmar:
+- o servidor muda a sala para finished;
+- todos os jogadores recebem match_ended;
+- a batalha para para todos;
+- aparece "PARTIDA ENCERRADA / ENCERRADA PELO PROFESSOR".
+
+IMPORTANTE
+==========
+Ainda NÃO migramos nesta etapa:
+- IA dos bots;
+- tiros;
+- dano;
+- eliminações;
+- vencedor automático;
+- modo espectador.
+
+Esses itens precisam ficar no servidor para que todos os computadores tenham o mesmo resultado.
+A próxima etapa natural é COMBATE MULTIPLAYER / AUTORIDADE DO SERVIDOR.
+
+ARQUIVOS PARA SUBSTITUIR
+========================
+C:\batletankemti\app\main.py
+C:\batletankemti\frontend\network.js
+C:\batletankemti\frontend\game.js
+C:\batletankemti\frontend\host.html
+C:\batletankemti\frontend\host.js
+C:\batletankemti\frontend\host.css
+
+TESTE LOCAL RECOMENDADO
+=======================
+1. Abra PowerShell:
+
+cd C:\batletankemti
+python -m uvicorn app.main:app --reload
+
+2. Professor:
+http://127.0.0.1:8000/host
+
+3. Abra dois navegadores/janelas para alunos:
+http://127.0.0.1:8000/
+
+4. Entre os dois alunos na mesma sala.
+
+5. Inicie preparação e depois batalha.
+
+6. Mova o ALUNO 1 com WASD.
+O ALUNO 2 deve ver o tanque do ALUNO 1 se mover.
+
+7. Faça o mesmo com o ALUNO 2.
+
+8. Na tela do professor, clique ENCERRAR PARTIDA.
+Os dois jogadores devem receber a tela de partida encerrada.
+
+VALIDAÇÃO FEITA ANTES DE GERAR ESTE PACOTE
+===========================================
+- Python py_compile: OK
+- network.js: OK
+- game.js: OK
+- host.js: OK
+- lobby.js: OK
+- teste real WebSocket local: OK
+- movimento oficial no servidor: OK
+- broadcast de match_state: OK
+- encerramento pelo professor: OK
+
+NÃO FAZER GIT PUSH AINDA.
+Primeiro testar localmente com duas janelas/alunos.

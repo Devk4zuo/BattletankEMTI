@@ -1,0 +1,33 @@
+BATTLE TANK EMTI - FRONTEND CONSOLIDADO V4
+Professor Kazuo
+
+OBJETIVO
+Substituir de uma vez a pasta frontend do projeto, evitando mistura de arquivos antigos e novos.
+
+COMO INSTALAR
+1. Pare o Uvicorn.
+2. Renomeie C:\batletankemti\frontend para frontend_backup.
+3. Copie a pasta frontend deste pacote para C:\batletankemti\frontend.
+4. Inicie novamente:
+   cd C:\batletankemti
+   python -m uvicorn app.main:app --reload
+5. Abra http://127.0.0.1:8000/lab.html
+6. Pressione Ctrl+F5 uma vez.
+
+VALIDAÇÃO
+- JavaScript deve executar os testes em Web Worker.
+- Python usa Pyodide 314.0.6 em Web Worker modular.
+- O executor Python tenta três origens de CDN antes de declarar falha.
+- O console agora mostra o detalhe técnico caso o carregamento do Python falhe.
+- Não há referência a COMADI nos arquivos ativos do frontend.
+
+TESTE PYTHON - DESAFIO 01
+
+def potencia_motor(potencia):
+    return potencia * 2
+
+TESTE JAVASCRIPT - DESAFIO 01
+
+function potenciaMotor(potencia) {
+    return potencia * 2;
+}

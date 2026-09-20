@@ -62,6 +62,11 @@
             "startProgrammingButton"
         );
 
+    const toggleBotsButton =
+        document.getElementById(
+            "toggleBotsButton"
+        );
+
     const programmingTimerPanel =
         document.getElementById(
             "programmingTimerPanel"
@@ -115,6 +120,7 @@
     let clockTimer = null;
     let programmingEndsAt = null;
     let countdownEndsAt = null;
+    let botsEnabled = true;
 
     createRoomButton.addEventListener(
         "click",
@@ -136,6 +142,15 @@
                 "Abrindo a fase de programação...";
 
             network.startProgramming();
+        }
+    );
+
+    toggleBotsButton.addEventListener(
+        "click",
+        () => {
+            network.setBotsEnabled(
+                !botsEnabled
+            );
         }
     );
 
@@ -228,6 +243,23 @@
 
             botCount.textContent =
                 detail.bot_count_if_started;
+
+            botsEnabled =
+                Boolean(detail.bots_enabled);
+
+            toggleBotsButton.textContent =
+                botsEnabled
+                    ? "BOTS: ATIVADOS"
+                    : "BOTS: DESATIVADOS";
+
+            toggleBotsButton.classList.toggle(
+                "bots-disabled",
+                !botsEnabled
+            );
+
+            toggleBotsButton.disabled =
+                detail.status !== "lobby" &&
+                detail.status !== "programming";
 
             readySummary.textContent =
                 `${detail.ready_count} finalizado(s)`;

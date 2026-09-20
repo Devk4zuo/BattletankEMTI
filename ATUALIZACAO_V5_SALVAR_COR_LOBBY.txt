@@ -1,0 +1,26 @@
+BATTLE TANK EMTI - ATUALIZAÇÃO V5
+Professor Kazuo
+
+OBJETIVO
+- Preservar a arena e o gameplay já aprovados.
+- Adicionar SALVAR CÓDIGO no laboratório.
+- Adicionar SALVAR E VOLTAR para retornar à tela de preparação.
+- Ao retornar do laboratório, enviar o loadout ao servidor, marcar o aluno como PRONTO e deixá-lo aguardando o professor liberar a arena.
+- Permitir escolha da cor do tanque somente no lobby.
+- Bloquear troca de cor durante programação, countdown e batalha.
+
+FLUXO DO ALUNO
+1. Entrar na sessão.
+2. Escolher a cor do tanque no lobby.
+3. Professor inicia a fase de programação.
+4. Abrir o laboratório.
+5. Escrever/testar o código.
+6. Clicar SALVAR CÓDIGO quando quiser gravar o rascunho.
+7. Clicar SALVAR E VOLTAR.
+8. O jogo sincroniza o loadout e marca o aluno como PRONTO.
+9. O aluno fica aguardando o professor liberar a arena.
+10. Ao iniciar a batalha, a cor escolhida no lobby permanece bloqueada.
+
+IMPORTANTE
+- As teclas 1, 2, 3 e 4 não trocam mais a cor do tanque durante a partida.
+- O servidor preserva a cor escolhida no lobby e ignora tentativas de alteração da cor durante a programação.

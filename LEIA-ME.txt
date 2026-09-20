@@ -1,0 +1,91 @@
+BATTLE TANK EMTI - CONSOLIDADO V6
+Professor Kazuo
+
+OBJETIVO DESTA VERSÃO
+=====================
+A arena permanece baseada na versão jogável aprovada.
+O aprimoramento principal é a fase de PROGRAMAÇÃO DO TANQUE antes da batalha.
+
+FLUXO DA PARTIDA
+================
+1. Aluno entra com nome + PIN.
+2. Aluno escolhe a cor do tanque no lobby.
+3. Professor inicia a fase de programação.
+4. Aluno abre PROGRAMAR MEU TANQUE.
+5. Aluno escolhe UMA linguagem: JavaScript OU Python.
+6. A linguagem fica bloqueada durante a partida.
+7. Aluno pode escrever até 5 funções permitidas no mesmo programa.
+8. Aluno usa VALIDAR PROGRAMA.
+9. Funções corretas modificam o tanque.
+10. Aluno clica no botão grande FINALIZAR PROGRAMAÇÃO.
+11. Depois da confirmação, o laboratório fica bloqueado.
+12. Aluno aguarda o professor iniciar a arena.
+13. Durante a batalha não existe acesso ao laboratório nem troca de cor.
+
+FUNÇÕES
+=======
+- 30 funções permitidas em JavaScript.
+- As mesmas 30 funções em Python.
+- Máximo de 5 funções ativas por partida.
+- É permitido escrever várias funções no mesmo editor.
+- O servidor limita e deriva os atributos oficiais a partir das funções selecionadas.
+
+EFEITOS IMPLEMENTADOS
+=====================
+As funções podem afetar:
+- velocidade do tanque;
+- velocidade do projétil;
+- cadência;
+- tiro duplo/triplo;
+- dano;
+- tamanho do projétil;
+- alcance do projétil;
+- dispersão do tiro múltiplo;
+- vida máxima;
+- redução de dano;
+- regeneração de vida.
+
+INSTALAÇÃO
+==========
+1. Faça backup de C:\batletankemti.
+2. Pare o Uvicorn.
+3. Copie todo o conteúdo deste pacote sobre C:\batletankemti.
+4. Substitua os arquivos quando o Windows solicitar.
+5. Execute:
+
+   cd C:\batletankemti
+   python -m uvicorn app.main:app --reload
+
+6. Abra o jogo e use Ctrl + F5 na primeira execução.
+
+TESTE MÍNIMO
+============
+- criar sala no /host;
+- aluno entrar e escolher cor;
+- professor iniciar programação;
+- aluno abrir PROGRAMAR MEU TANQUE;
+- selecionar JavaScript ou Python;
+- validar pelo menos uma função;
+- finalizar programação;
+- confirmar que o botão de laboratório desaparece e o aluno fica aguardando;
+- professor iniciar a arena;
+- confirmar que a cor não muda durante o jogo;
+- confirmar que os efeitos programados aparecem na arena.
+
+ARQUIVOS PRINCIPAIS ALTERADOS
+=============================
+app/main.py
+frontend/index.html
+frontend/lobby.js
+frontend/lobby.css
+frontend/network.js
+frontend/lab.html
+frontend/lab.css
+frontend/lab.js
+frontend/javascript_worker_v6.js
+frontend/python_worker_v6.mjs
+
+IMPORTANTE
+==========
+O código Python do aluno é executado no navegador via Pyodide/Web Worker.
+Código arbitrário do aluno NÃO é executado diretamente no FastAPI.

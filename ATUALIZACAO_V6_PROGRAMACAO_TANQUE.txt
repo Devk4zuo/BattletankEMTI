@@ -1,0 +1,15 @@
+BATTLE TANK EMTI - ATUALIZAÇÃO V6
+Professor Kazuo
+
+- Novo conceito: PROGRAMAÇÃO DO TANQUE baseada em escolha de funções permitidas.
+- Uma linguagem por partida: JavaScript ou Python.
+- 30 funções permitidas em cada linguagem.
+- Até 5 funções ativas por partida.
+- Várias funções podem ser escritas no mesmo editor.
+- Botão grande FINALIZAR PROGRAMAÇÃO.
+- Finalização irreversível durante a partida.
+- Após finalizar: AGUARDANDO A ARENA.
+- Laboratório bloqueado no countdown e durante a batalha.
+- Cor do tanque somente no lobby.
+- Tiro duplo e triplo implementados no servidor.
+- Novos atributos programáveis: dano, vida, defesa, regeneração, raio e alcance do projétil.

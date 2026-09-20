@@ -140,6 +140,35 @@ body {
         0 25px 60px rgba(0, 0, 0, 0.6);
 }
 
+.music-toggle-button {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 20;
+
+    width: 42px;
+    height: 42px;
+
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+
+    background: rgba(10, 14, 10, 0.72);
+    color: #f4f6f1;
+
+    font-size: 18px;
+    cursor: pointer;
+
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.music-toggle-button:hover {
+    background: rgba(10, 14, 10, 0.9);
+}
+
+.music-toggle-button.music-muted {
+    opacity: 0.45;
+}
+
 
 canvas {
     width: 100%;

@@ -27,8 +27,8 @@ MAX_PARTICIPANTS = 20
 PROGRAMMING_DURATION_SECONDS = 5 * 60
 COUNTDOWN_DURATION_SECONDS = 5
 
-WORLD_WIDTH = 6144
-WORLD_HEIGHT = 3456
+WORLD_WIDTH = 12288
+WORLD_HEIGHT = 6912
 
 TERRAINS = ["mapa1", "mapa2"]
 TANK_SKINS = ["azul", "vermelho", "bege", "escuro"]
@@ -64,35 +64,35 @@ PROGRAM_FUNCTION_EFFECTS: dict[str, dict[str, float]] = {
     "alcance": {"bulletLifetime": 2.0},
     "precisao": {"bulletSpread": 3.0},
     "estabilizador": {"bulletSpread": 2.0},
-    "blindagem": {"maxLife": 25.0},
-    "blindagem2": {"maxLife": 15.0},
+    "blindagem": {"maxLife": 75.0},
+    "blindagem2": {"maxLife": 45.0},
     "escudo": {"damageReduction": 0.15},
     "amortecimento": {"damageReduction": 0.10},
     "regeneracao": {"regen": 1.0},
-    "emergencia": {"maxLife": 10.0, "regen": 0.5},
+    "emergencia": {"maxLife": 30.0, "regen": 0.5},
 }
 
 SPAWN_POINTS = [
-    {"x": 450, "y": 450},
-    {"x": 1500, "y": 450},
-    {"x": 2600, "y": 450},
-    {"x": 3700, "y": 450},
-    {"x": 4800, "y": 450},
-    {"x": 800, "y": 1150},
-    {"x": 2000, "y": 1150},
-    {"x": 3100, "y": 1150},
-    {"x": 4200, "y": 1150},
-    {"x": 5450, "y": 1150},
-    {"x": 650, "y": 2200},
-    {"x": 1800, "y": 2200},
-    {"x": 2900, "y": 2200},
-    {"x": 4100, "y": 2200},
-    {"x": 5350, "y": 2200},
-    {"x": 450, "y": 3000},
-    {"x": 1600, "y": 3000},
-    {"x": 2900, "y": 3000},
-    {"x": 4300, "y": 3000},
-    {"x": 5600, "y": 3000},
+    {"x": 900, "y": 900},
+    {"x": 3000, "y": 900},
+    {"x": 5200, "y": 900},
+    {"x": 7400, "y": 900},
+    {"x": 9600, "y": 900},
+    {"x": 1600, "y": 2300},
+    {"x": 4000, "y": 2300},
+    {"x": 6200, "y": 2300},
+    {"x": 8400, "y": 2300},
+    {"x": 10900, "y": 2300},
+    {"x": 1300, "y": 4400},
+    {"x": 3600, "y": 4400},
+    {"x": 5800, "y": 4400},
+    {"x": 8200, "y": 4400},
+    {"x": 10700, "y": 4400},
+    {"x": 900, "y": 6000},
+    {"x": 3200, "y": 6000},
+    {"x": 5800, "y": 6000},
+    {"x": 8600, "y": 6000},
+    {"x": 11200, "y": 6000},
 ]
 
 BARRIER_SIZES = {
@@ -104,17 +104,50 @@ BARRIER_SIZES = {
     "barrier8": (340, 340),
     "barrier9": (420, 240),
     "barrier10": (330, 330),
+    "barrier12": (800, 159),
+    "barrier13": (313, 460),
+    "barrier14": (334, 320),
+    "barrier15": (254, 460),
+    "barrier17": (410, 437),
+    "barrier18": (451, 437),
+    "barrier19": (422, 437),
+    "barrier20": (392, 437),
+    "barrier21": (343, 437),
+    "barrier22": (279, 460),
+    "barrier23": (482, 437),
+    "barrier24": (256, 460),
+    "barrier27": (583, 212),
+    "barrier29": (451, 200),
+    "barrier30": (224, 193),
+    "barrier33": (255, 460),
+    "barrier34": (423, 415),
+    "barrier35": (404, 212),
+    "barrier36": (263, 460),
+}
+
+# Barreiras "especiais": exatamente 1 de cada por mapa, bem maiores.
+SPECIAL_BARRIER_SIZES = {
+    "special1": (511, 911),
+    "special2": (517, 920),
+    "special3": (516, 919),
+    "special4": (845, 564),
+    "special5": (845, 564),
 }
 
 BARRIER_POOL = [
-    "barrier1", "barrier1",
-    "barrier2", "barrier2",
-    "barrier4",
-    "barrier5",
-    "barrier7",
-    "barrier8", "barrier8",
-    "barrier9", "barrier9",
-    "barrier10",
+    "barrier1", "barrier2", "barrier4", "barrier5",
+    "barrier7", "barrier8", "barrier9", "barrier10",
+    "barrier12", "barrier13", "barrier14", "barrier15",
+    "barrier17", "barrier18", "barrier19", "barrier20",
+    "barrier21", "barrier22", "barrier23", "barrier24",
+    "barrier27", "barrier29", "barrier30",
+    "barrier33", "barrier34", "barrier35",
+    "barrier36",
+]
+
+# Sorteadas à parte: exatamente 1 de cada, nunca repetem no mesmo mapa.
+SPECIAL_BARRIER_POOL = [
+    "special1", "special2", "special3", "special4", "special5",
 ]
 
 # Árvores são cobertura visual, não barreiras físicas.
@@ -155,6 +188,31 @@ BULLET_DAMAGE = 25
 BULLET_SPEED_TO_PIXELS_PER_SECOND = 60.0
 BULLET_MAX_LIFETIME_SECONDS = 5.0
 
+# ============================================================
+# POWER-UPS
+# ============================================================
+
+POWERUP_RADIUS = 45.0
+POWERUP_SPAWN_INTERVAL_SECONDS = 18.0
+POWERUP_MAX_ACTIVE = 4
+
+POWERUP_SPEED_MULTIPLIER = 1.6
+POWERUP_SPEED_DURATION_SECONDS = 6.0
+
+POWERUP_INVINCIBILITY_DURATION_SECONDS = 5.0
+
+POWERUP_QUADSHOT_DURATION_SECONDS = 8.0
+
+POWERUP_HEAL_AMOUNT = 3.0
+
+# "quadshot" é mais raro: só 1 entrada no pool contra 3 dos outros.
+POWERUP_POOL = [
+    "speed", "speed", "speed",
+    "invincibility", "invincibility", "invincibility",
+    "heal", "heal", "heal",
+    "quadshot",
+]
+
 BARRIER_HITBOXES = {
     "barrier1": (0.08, 0.38, 0.84, 0.28),
     "barrier2": (0.08, 0.40, 0.84, 0.23),
@@ -164,7 +222,59 @@ BARRIER_HITBOXES = {
     "barrier8": (0.12, 0.22, 0.76, 0.58),
     "barrier9": (0.06, 0.34, 0.88, 0.34),
     "barrier10": (0.16, 0.16, 0.68, 0.68),
+    "barrier12": (0.06, 0.06, 0.88, 0.88),
+    "barrier13": (0.06, 0.06, 0.88, 0.88),
+    "barrier14": (0.06, 0.06, 0.88, 0.88),
+    "barrier15": (0.06, 0.06, 0.88, 0.88),
+    "barrier17": (0.06, 0.06, 0.88, 0.88),
+    "barrier18": (0.06, 0.06, 0.88, 0.88),
+    "barrier19": (0.06, 0.06, 0.88, 0.88),
+    "barrier20": (0.06, 0.06, 0.88, 0.88),
+    "barrier21": (0.06, 0.06, 0.88, 0.88),
+    "barrier22": (0.06, 0.06, 0.88, 0.88),
+    "barrier23": (0.06, 0.06, 0.88, 0.88),
+    "barrier24": (0.06, 0.06, 0.88, 0.88),
+    "barrier27": (0.06, 0.06, 0.88, 0.88),
+    "barrier29": (0.06, 0.06, 0.88, 0.88),
+    "barrier30": (0.06, 0.06, 0.88, 0.88),
+    "barrier33": (0.06, 0.06, 0.88, 0.88),
+    "barrier34": (0.06, 0.06, 0.88, 0.88),
+    "barrier35": (0.06, 0.06, 0.88, 0.88),
+    "barrier36": (0.06, 0.06, 0.88, 0.88),
 }
+
+SPECIAL_BARRIER_HITBOXES = {
+    "special1": (0.08, 0.08, 0.84, 0.84),
+    "special2": (0.08, 0.08, 0.84, 0.84),
+    "special3": (0.08, 0.08, 0.84, 0.84),
+    "special4": (0.08, 0.08, 0.84, 0.84),
+    "special5": (0.08, 0.08, 0.84, 0.84),
+}
+
+# Fonte única de verdade sobre tamanho/hitbox de cada barreira.
+# Enviado ao cliente em cada match_start, em vez de duplicado à mão no JS.
+def _build_barrier_catalog() -> dict[str, dict[str, Any]]:
+    catalog: dict[str, dict[str, Any]] = {}
+
+    for type_name, (width, height) in {**BARRIER_SIZES, **SPECIAL_BARRIER_SIZES}.items():
+        is_special = type_name in SPECIAL_BARRIER_SIZES
+        hx, hy, hw, hh = (
+            SPECIAL_BARRIER_HITBOXES[type_name]
+            if is_special
+            else BARRIER_HITBOXES[type_name]
+        )
+        catalog[type_name] = {
+            "image": type_name,
+            "special": is_special,
+            "width": width,
+            "height": height,
+            "hitbox": {"x": hx, "y": hy, "width": hw, "height": hh},
+        }
+
+    return catalog
+
+
+BARRIER_CATALOG = _build_barrier_catalog()
 
 
 class ConnectionManager:
@@ -230,7 +340,7 @@ def base_loadout(skin: str = "azul") -> dict[str, Any]:
         "bulletRadius": 4.0,
         "bulletLifetime": 5.0,
         "bulletSpread": 6.0,
-        "maxLife": 100,
+        "maxLife": 300,
         "damageReduction": 0.0,
         "regen": 0.0,
         "programmedFunctions": [],
@@ -307,7 +417,7 @@ def derive_loadout_from_functions(
         clamp(explicit_spread if explicit_spread is not None else 6.0, 1.5, 10.0, 6.0),
         2,
     )
-    loadout["maxLife"] = int(clamp(loadout["maxLife"], 80, 160, 100))
+    loadout["maxLife"] = int(clamp(loadout["maxLife"], 240, 480, 300))
     loadout["damageReduction"] = round(clamp(loadout["damageReduction"], 0.0, 0.35, 0.0), 3)
     loadout["regen"] = round(clamp(loadout["regen"], 0.0, 2.0, 0.0), 2)
     loadout["programmedFunctions"] = selected
@@ -375,6 +485,7 @@ def room_public_state(room: dict[str, Any]) -> dict[str, Any]:
     ]
 
     human_count = len(humans)
+    bots_enabled = bool(room.get("bots_enabled", True))
 
     return {
         "type": "room_state",
@@ -383,7 +494,8 @@ def room_public_state(room: dict[str, Any]) -> dict[str, Any]:
         "max_participants": MAX_PARTICIPANTS,
         "human_count": human_count,
         "ready_count": sum(1 for player in humans if player["ready"]),
-        "bot_count_if_started": max(0, MAX_PARTICIPANTS - human_count),
+        "bots_enabled": bots_enabled,
+        "bot_count_if_started": max(0, MAX_PARTICIPANTS - human_count) if bots_enabled else 0,
         "players": humans,
         "programming_ends_at": room.get("programming_ends_at"),
         "countdown_ends_at": room.get("countdown_ends_at"),
@@ -420,53 +532,223 @@ def is_near_spawn(candidate: dict[str, float]) -> bool:
     return False
 
 
+def build_balanced_type_sequence(
+    rng: random.Random,
+    pool: list[str],
+    desired_quantity: int,
+) -> list[str]:
+    """Cada tipo aparece um número parecido de vezes, embaralhado —
+    evita que o sorteio puro concentre repetições do mesmo tipo."""
+    sequence: list[str] = []
+
+    while len(sequence) < desired_quantity:
+        batch = pool.copy()
+        rng.shuffle(batch)
+        sequence.extend(batch)
+
+    return sequence[:desired_quantity]
+
+
 def generate_obstacles(
     rng: random.Random,
-    desired_quantity: int = 52,
+    desired_quantity: int = 208,
+    avoid: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     obstacles: list[dict[str, Any]] = []
-    attempts = 0
-    maximum_attempts = 5000
+    reserved = avoid or []
     margin = 80
+    max_attempts_per_item = 400
 
-    while len(obstacles) < desired_quantity and attempts < maximum_attempts:
-        attempts += 1
+    type_sequence = build_balanced_type_sequence(rng, BARRIER_POOL, desired_quantity)
 
-        type_name = rng.choice(BARRIER_POOL)
+    for type_name in type_sequence:
         width, height = BARRIER_SIZES[type_name]
+        attempts = 0
 
-        candidate = {
-            "type": type_name,
-            "x": round(
-                margin + rng.random() * (WORLD_WIDTH - width - margin * 2),
-                2,
-            ),
-            "y": round(
-                margin + rng.random() * (WORLD_HEIGHT - height - margin * 2),
-                2,
-            ),
-            "width": width,
-            "height": height,
-        }
+        while attempts < max_attempts_per_item:
+            attempts += 1
 
-        if is_near_spawn(candidate):
-            continue
+            candidate = {
+                "type": type_name,
+                "x": round(
+                    margin + rng.random() * (WORLD_WIDTH - width - margin * 2),
+                    2,
+                ),
+                "y": round(
+                    margin + rng.random() * (WORLD_HEIGHT - height - margin * 2),
+                    2,
+                ),
+                "width": width,
+                "height": height,
+            }
 
-        if any(
-            rectangles_overlap(candidate, existing, 40)
-            for existing in obstacles
-        ):
-            continue
+            if is_near_spawn(candidate):
+                continue
 
-        obstacles.append(candidate)
+            if any(
+                rectangles_overlap(candidate, existing, 40)
+                for existing in obstacles + reserved
+            ):
+                continue
+
+            obstacles.append(candidate)
+            break
 
     return obstacles
+
+
+def generate_special_obstacles(
+    rng: random.Random,
+    obstacles: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Coloca exatamente 1 de cada barreira especial por mapa (maiores, únicas)."""
+    specials: list[dict[str, Any]] = []
+    margin = 80
+
+    for type_name in SPECIAL_BARRIER_POOL:
+        width, height = SPECIAL_BARRIER_SIZES[type_name]
+        attempts = 0
+        maximum_attempts = 20000
+
+        while attempts < maximum_attempts:
+            attempts += 1
+
+            candidate = {
+                "type": type_name,
+                "x": round(
+                    margin + rng.random() * (WORLD_WIDTH - width - margin * 2),
+                    2,
+                ),
+                "y": round(
+                    margin + rng.random() * (WORLD_HEIGHT - height - margin * 2),
+                    2,
+                ),
+                "width": width,
+                "height": height,
+            }
+
+            if is_near_spawn(candidate):
+                continue
+
+            if any(
+                rectangles_overlap(candidate, existing, 60)
+                for existing in obstacles + specials
+            ):
+                continue
+
+            specials.append(candidate)
+            break
+
+    return specials
+
+
+def spawn_powerup(match: dict[str, Any]) -> None:
+    """Sorteia um power-up numa posição livre (fora de obstáculos)."""
+    powerups = match.setdefault("powerups", [])
+
+    if len(powerups) >= POWERUP_MAX_ACTIVE:
+        return
+
+    powerup_type = random.choice(POWERUP_POOL)
+    margin = 140
+    attempts = 0
+
+    while attempts < 80:
+        attempts += 1
+
+        x = margin + random.random() * (WORLD_WIDTH - margin * 2)
+        y = margin + random.random() * (WORLD_HEIGHT - margin * 2)
+
+        candidate_box = {
+            "x": x - POWERUP_RADIUS,
+            "y": y - POWERUP_RADIUS,
+            "width": POWERUP_RADIUS * 2,
+            "height": POWERUP_RADIUS * 2,
+        }
+
+        collides_with_obstacle = any(
+            rectangles_overlap(candidate_box, obstacle, 20)
+            for obstacle in match.get("obstacles", [])
+        )
+
+        if collides_with_obstacle:
+            continue
+
+        too_close_to_other_powerup = any(
+            math.hypot(existing["x"] - x, existing["y"] - y) < POWERUP_RADIUS * 4
+            for existing in powerups
+        )
+
+        if too_close_to_other_powerup:
+            continue
+
+        powerups.append(
+            {
+                "id": uuid.uuid4().hex[:8],
+                "type": powerup_type,
+                "x": round(x, 2),
+                "y": round(y, 2),
+            }
+        )
+        return
+
+
+def apply_powerup_effect(
+    participant: dict[str, Any],
+    powerup_type: str,
+    now: float,
+) -> None:
+    if powerup_type == "speed":
+        participant["speedBoostUntil"] = now + POWERUP_SPEED_DURATION_SECONDS
+
+    elif powerup_type == "invincibility":
+        participant["invincibleUntil"] = (
+            now + POWERUP_INVINCIBILITY_DURATION_SECONDS
+        )
+
+    elif powerup_type == "quadshot":
+        participant["quadShotUntil"] = now + POWERUP_QUADSHOT_DURATION_SECONDS
+
+    elif powerup_type == "heal":
+        max_life = float(participant.get("maxLife", 300))
+        current_life = float(participant.get("life", max_life))
+        participant["life"] = min(max_life, current_life + POWERUP_HEAL_AMOUNT)
+
+
+def collect_powerups_for(
+    match: dict[str, Any],
+    participant: dict[str, Any],
+    now: float,
+) -> None:
+    powerups = match.get("powerups", [])
+
+    if not powerups:
+        return
+
+    px = float(participant.get("x", 0))
+    py = float(participant.get("y", 0))
+
+    tank_reach = max(
+        float(participant.get("width", 56)),
+        float(participant.get("height", 56)),
+    ) / 2
+
+    pickup_radius = POWERUP_RADIUS + tank_reach
+
+    for index in range(len(powerups) - 1, -1, -1):
+        powerup = powerups[index]
+
+        distance = math.hypot(px - powerup["x"], py - powerup["y"])
+
+        if distance <= pickup_radius:
+            apply_powerup_effect(participant, powerup["type"], now)
+            powerups.pop(index)
 
 
 def generate_trees(
     rng: random.Random,
     obstacles: list[dict[str, Any]],
-    desired_quantity: int = 13,
+    desired_quantity: int = 52,
 ) -> list[dict[str, Any]]:
     """
     Gera árvores como cobertura visual.
@@ -478,7 +760,7 @@ def generate_trees(
     """
     trees: list[dict[str, Any]] = []
     attempts = 0
-    maximum_attempts = 3000
+    maximum_attempts = 12000
     margin = 70
 
     while len(trees) < desired_quantity and attempts < maximum_attempts:
@@ -564,7 +846,8 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    bot_count = MAX_PARTICIPANTS - len(humans)
+    bots_enabled = bool(room.get("bots_enabled", True))
+    bot_count = (MAX_PARTICIPANTS - len(humans)) if bots_enabled else 0
     bots: list[dict[str, Any]] = []
 
     for offset in range(bot_count):
@@ -590,16 +873,16 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
                 "bulletRadius": BULLET_RADIUS,
                 "bulletLifetime": BULLET_MAX_LIFETIME_SECONDS,
                 "bulletSpread": 6.0,
-                "maxLife": 100,
+                "maxLife": 300,
                 "damageReduction": 0.0,
                 "regen": 0.0,
-                "life": 100.0,
+                "life": 300.0,
                 "kills": 0,
                 "lastShotAt": -999.0,
                 "ai": {
-                    "detectionRange": round(1050 + rng.random() * 350, 2),
-                    "attackRange": 900,
-                    "preferredDistance": round(320 + rng.random() * 120, 2),
+                    "detectionRange": round(2100 + rng.random() * 700, 2),
+                    "attackRange": 1800,
+                    "preferredDistance": round(640 + rng.random() * 240, 2),
                     "aimError": round(0.025 + rng.random() * 0.045, 4),
                     "evadeDirection": -1 if rng.random() < 0.5 else 1,
                     "targetId": None,
@@ -610,7 +893,8 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
 
     participants = humans + bots
     terrain = rng.choice(TERRAINS)
-    obstacles = generate_obstacles(rng)
+    obstacles = generate_special_obstacles(rng, [])
+    obstacles += generate_obstacles(rng, avoid=obstacles)
     trees = generate_trees(
         rng,
         obstacles,
@@ -624,11 +908,14 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
             "width": WORLD_WIDTH,
             "height": WORLD_HEIGHT,
         },
+        "barrier_catalog": BARRIER_CATALOG,
         "participants": participants,
         "obstacles": obstacles,
         "trees": trees,
         "bullets": [],
         "bullet_counter": 0,
+        "powerups": [],
+        "next_powerup_spawn_at": 0.0,
     }
 
 
@@ -894,7 +1181,18 @@ def spawn_server_bullet(
     spread_degrees = float(clamp(shooter.get("bulletSpread"), 1.5, 10.0, 6.0))
     spread_radians = math.radians(spread_degrees)
 
-    if bullet_count <= 1:
+    quad_shot_active = now < float(shooter.get("quadShotUntil", 0))
+
+    if quad_shot_active:
+        # Power-up de tiro quádruplo: 4 projéteis em leque,
+        # substitui o número programado pelo aluno enquanto ativo.
+        angle_offsets = [
+            -1.5 * spread_radians,
+            -0.5 * spread_radians,
+            0.5 * spread_radians,
+            1.5 * spread_radians,
+        ]
+    elif bullet_count <= 1:
         angle_offsets = [0.0]
     elif bullet_count == 2:
         angle_offsets = [-spread_radians / 2.0, spread_radians / 2.0]
@@ -1011,12 +1309,16 @@ def update_server_bullets(
         if hit_participant is None:
             continue
 
+        if now < float(hit_participant.get("invincibleUntil", 0)):
+            bullets.pop(index)
+            continue
+
         raw_damage = float(bullet.get("damage", BULLET_DAMAGE))
         reduction = float(clamp(hit_participant.get("damageReduction"), 0.0, 0.35, 0.0))
         effective_damage = max(1.0, raw_damage * (1.0 - reduction))
         hit_participant["life"] = max(
             0.0,
-            float(hit_participant.get("life", hit_participant.get("maxLife", 100)))
+            float(hit_participant.get("life", hit_participant.get("maxLife", 300)))
             - effective_damage,
         )
 
@@ -1100,9 +1402,16 @@ def try_server_bot_step(
     if abs(direction_x) < 0.0001 and abs(direction_y) < 0.0001:
         return False
 
+    speed_multiplier = (
+        POWERUP_SPEED_MULTIPLIER
+        if time.monotonic() < float(bot.get("speedBoostUntil", 0))
+        else 1.0
+    )
+
     pixels_per_second = (
         float(bot.get("speed", 3.6))
         * SPEED_TO_PIXELS_PER_SECOND
+        * speed_multiplier
     )
 
     step_x = direction_x * pixels_per_second * dt
@@ -1172,7 +1481,7 @@ def update_server_bot(
     bot["angle"] = target_angle + math.pi / 2
 
     attack_range = float(
-        ai.get("attackRange", 900.0)
+        ai.get("attackRange", 1800.0)
     )
 
     if (
@@ -1203,7 +1512,7 @@ def update_server_bot(
         )
 
     preferred_distance = float(
-        ai.get("preferredDistance", 370.0)
+        ai.get("preferredDistance", 740.0)
     )
 
     evade_direction = -1 if float(ai.get("evadeDirection", 1)) < 0 else 1
@@ -1265,6 +1574,7 @@ def update_server_bot(
 
 def match_state_payload(room: dict[str, Any]) -> dict[str, Any]:
     match = room.get("match") or {}
+    now = time.monotonic()
 
     players = [
         {
@@ -1275,9 +1585,12 @@ def match_state_payload(room: dict[str, Any]) -> dict[str, Any]:
             "y": round(float(participant.get("y", 0)), 2),
             "angle": round(float(participant.get("angle", 0)), 5),
             "alive": bool(participant.get("alive", True)),
-            "life": int(round(float(participant.get("life", 100)))),
-            "maxLife": int(participant.get("maxLife", 100)),
+            "life": int(round(float(participant.get("life", 300)))),
+            "maxLife": int(participant.get("maxLife", 300)),
             "kills": int(participant.get("kills", 0)),
+            "invincible": now < float(participant.get("invincibleUntil", 0)),
+            "quadShot": now < float(participant.get("quadShotUntil", 0)),
+            "speedBoost": now < float(participant.get("speedBoostUntil", 0)),
         }
         for participant in match.get("participants", [])
     ]
@@ -1295,6 +1608,16 @@ def match_state_payload(room: dict[str, Any]) -> dict[str, Any]:
         for bullet in match.get("bullets", [])
     ]
 
+    powerups = [
+        {
+            "id": powerup.get("id"),
+            "type": powerup.get("type"),
+            "x": round(float(powerup.get("x", 0)), 2),
+            "y": round(float(powerup.get("y", 0)), 2),
+        }
+        for powerup in match.get("powerups", [])
+    ]
+
     return {
         "type": "match_state",
         "room_code": room["code"],
@@ -1302,6 +1625,7 @@ def match_state_payload(room: dict[str, Any]) -> dict[str, Any]:
         "server_now": time.time(),
         "players": players,
         "bullets": bullets,
+        "powerups": powerups,
     }
 
 
@@ -1369,9 +1693,16 @@ async def match_loop(
                 + math.pi / 2
             )
 
+            speed_multiplier = (
+                POWERUP_SPEED_MULTIPLIER
+                if now < float(participant.get("speedBoostUntil", 0))
+                else 1.0
+            )
+
             pixels_per_second = (
                 float(participant.get("speed", 4.5))
                 * SPEED_TO_PIXELS_PER_SECOND
+                * speed_multiplier
             )
 
             step_x = move_x * pixels_per_second * dt
@@ -1398,6 +1729,15 @@ async def match_loop(
                 )
             ):
                 participant["y"] = float(participant.get("y", 0)) + step_y
+
+        # Power-ups: spawn periódico e coleta por qualquer tanque vivo.
+        if now >= float(match.get("next_powerup_spawn_at", 0)):
+            spawn_powerup(match)
+            match["next_powerup_spawn_at"] = now + POWERUP_SPAWN_INTERVAL_SECONDS
+
+        for participant in match.get("participants", []):
+            if participant.get("alive", True):
+                collect_powerups_for(match, participant, now)
 
         # IA dos bots agora também é calculada pelo servidor.
         for participant in match.get("participants", []):
@@ -1426,7 +1766,7 @@ async def match_loop(
             regen = float(clamp(participant.get("regen"), 0.0, 2.0, 0.0))
             if regen <= 0:
                 continue
-            max_life = float(participant.get("maxLife", 100))
+            max_life = float(participant.get("maxLife", 300))
             current_life = float(participant.get("life", max_life))
             participant["life"] = min(max_life, current_life + regen * dt)
 
@@ -1679,12 +2019,15 @@ async def start_match(room_code: str) -> None:
         return
 
     room["match"] = build_match(room)
+    room["match"]["next_powerup_spawn_at"] = (
+        time.monotonic() + POWERUP_SPAWN_INTERVAL_SECONDS
+    )
     room["status"] = "running"
     room["player_inputs"] = {}
 
     match = room["match"]
     human_count = len(room["players"])
-    bot_count = MAX_PARTICIPANTS - human_count
+    bot_count = len(match["participants"]) - human_count
 
     await manager.broadcast_to_clients(
         get_room_client_ids(room),
@@ -1791,6 +2134,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     "host_id": client_id,
                     "status": "lobby",
                     "players": [],
+                    "bots_enabled": bool(message.get("bots_enabled", False)),
                     "join_counter": 0,
                     "programming_ends_at": None,
                     "countdown_ends_at": None,
@@ -1976,6 +2320,39 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     continue
 
                 await start_programming_phase(room_code)
+                continue
+
+            if message_type == "set_bots_enabled":
+                room_code = client_rooms.get(client_id)
+                room = rooms.get(room_code or "")
+
+                if (
+                    room is None
+                    or room.get("host_id") != client_id
+                    or client_roles.get(client_id) != "host"
+                ):
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "room_error",
+                            "message": "Somente o professor pode ativar ou desativar os bots.",
+                        },
+                    )
+                    continue
+
+                if room["status"] not in ("lobby", "programming"):
+                    await manager.send_json(
+                        client_id,
+                        {
+                            "type": "room_error",
+                            "message": "Não é possível alterar os bots depois que a batalha começou.",
+                        },
+                    )
+                    continue
+
+                room["bots_enabled"] = bool(message.get("enabled", True))
+
+                await broadcast_room_state(room_code)
                 continue
 
             if message_type == "update_skin":

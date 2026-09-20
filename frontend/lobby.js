@@ -17,6 +17,9 @@
     let programmingTitleElement = null;
     let readyButton = null;
     let openLabLink = null;
+    let programmingIntroElement = null;
+    let labFrameWrap = null;
+    let labFrame = null;
     let programmingSummaryElement = null;
     let countdownValue = null;
     let skinStatusElement = null;
@@ -385,19 +388,34 @@
                         05:00
                     </div>
 
-                    <p>
-                        Escolha JavaScript ou Python, programe até 5 funções do tanque e finalize sua preparação.
-                    </p>
+                    <div
+                        id="battleProgrammingIntro"
+                    >
+                        <p>
+                            Escolha JavaScript ou Python, programe até 5 funções do tanque e finalize sua preparação.
+                        </p>
 
-                    <div class="battle-programming-actions">
-                        <a
-                            id="battleOpenLab"
-                            class="battle-primary-button battle-link-button"
-                            href="#"
-                            target="_blank"
-                        >
-                            PROGRAMAR MEU TANQUE
-                        </a>
+                        <div class="battle-programming-actions">
+                            <button
+                                id="battleOpenLab"
+                                class="battle-primary-button battle-link-button"
+                                type="button"
+                            >
+                                PROGRAMAR MEU TANQUE
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        id="labFrameWrap"
+                        class="lab-frame-wrap"
+                        hidden
+                    >
+                        <iframe
+                            id="labFrame"
+                            class="lab-frame"
+                            title="Laboratório de Programação"
+                        ></iframe>
                     </div>
 
                     <div
@@ -499,7 +517,14 @@
 
         readyButton = document.getElementById("battleReadyButton");
         openLabLink = document.getElementById("battleOpenLab");
+        programmingIntroElement = document.getElementById("battleProgrammingIntro");
+        labFrameWrap = document.getElementById("labFrameWrap");
+        labFrame = document.getElementById("labFrame");
         programmingSummaryElement = document.getElementById("battleProgrammingSummary");
+
+        if (openLabLink) {
+            openLabLink.addEventListener("click", openLabInline);
+        }
 
         countdownValue =
             document.getElementById(
@@ -884,13 +909,59 @@
         };
         localStorage.setItem(PROGRAM_ACCESS_KEY, JSON.stringify(access));
 
-        if (openLabLink) {
-            openLabLink.href = `lab.html?room=${encodeURIComponent(roomCode)}`;
-            openLabLink.hidden = currentFinalized;
+        if (programmingIntroElement) {
+            programmingIntroElement.hidden = currentFinalized;
+        }
+
+        if (labFrameWrap) {
+            labFrameWrap.hidden = true;
+        }
+
+        if (labFrame) {
+            labFrame.src = "about:blank";
         }
 
         updateReadyButton();
         consumeLabReturnIntent();
+    }
+
+    function openLabInline() {
+        if (currentFinalized) {
+            return;
+        }
+
+        if (!roomCode || !labFrame || !labFrameWrap) {
+            return;
+        }
+
+        labFrame.src = `lab.html?room=${encodeURIComponent(roomCode)}&embed=1`;
+
+        if (programmingIntroElement) {
+            programmingIntroElement.hidden = true;
+        }
+
+        labFrameWrap.hidden = false;
+    }
+
+    function closeLabInline(options = {}) {
+        const restoreIntro =
+            options.restoreIntro !== false;
+
+        if (labFrameWrap) {
+            labFrameWrap.hidden = true;
+        }
+
+        if (labFrame) {
+            labFrame.src = "about:blank";
+        }
+
+        if (restoreIntro && programmingIntroElement) {
+            programmingIntroElement.hidden = currentFinalized;
+        }
+
+        if (openLabLink) {
+            openLabLink.disabled = currentFinalized;
+        }
     }
 
     function startProgrammingClock() {
@@ -995,8 +1066,15 @@
             return;
         }
 
-        if (openLabLink) {
-            openLabLink.hidden = currentFinalized;
+        if (currentFinalized) {
+            closeLabInline();
+        }
+        else if (programmingIntroElement) {
+            programmingIntroElement.hidden = false;
+
+            if (openLabLink) {
+                openLabLink.disabled = false;
+            }
         }
 
         if (currentFinalized) {
@@ -1166,6 +1244,7 @@
             }
 
             if (event.key === LAB_RETURN_KEY && event.newValue) {
+                closeLabInline({ restoreIntro: false });
                 consumeLabReturnIntent();
             }
         }
@@ -1177,7 +1256,12 @@
         }
 
         if (event.data?.type === "battle-tank-programming-finalized") {
+            closeLabInline({ restoreIntro: false });
             consumeLabReturnIntent();
+        }
+
+        if (event.data?.type === "battle-tank-lab-cancelled") {
+            closeLabInline();
         }
     });
 

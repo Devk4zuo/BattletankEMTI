@@ -1,0 +1,66 @@
+BATTLE TANK EMTI - ATUALIZAÇÃO DO LABORATÓRIO
+Professor Kazuo
+
+OBJETIVO
+A versão jogável da arena foi preservada. Esta atualização concentra-se no laboratório de programação antes da batalha.
+
+IMPLEMENTADO
+- JavaScript real executado em Web Worker.
+- Timeout para interromper loops infinitos em JavaScript.
+- Captura de console.log no painel do laboratório.
+- Mensagens de erro de sintaxe e execução mais claras.
+- Testes visíveis e testes adicionais para evitar respostas decoradas.
+- Python real no navegador com Pyodide, executado em Web Worker separado.
+- Precarregamento do interpretador Python quando o laboratório abre.
+- Timeout para interromper código Python travado e recriar o Worker.
+- Captura de print() do Python no console do laboratório.
+- Alternância JavaScript/Python mantendo rascunhos separados.
+- Ctrl+Enter executa os testes.
+- Tecla TAB insere quatro espaços no editor.
+- Rascunhos são salvos localmente para não perder o código ao trocar de desafio ou linguagem.
+- Três missões funcionais ligadas aos três upgrades já existentes no jogo:
+  1. Motor MK-II: speed 4.5 -> 4.9
+  2. Munição MK-II: bulletSpeed 13 -> 17
+  3. Canhão rápido MK-II: fireRate 260 ms -> 180 ms
+- As missões são progressivas. A próxima é liberada após concluir a anterior.
+- O motor de desafios ficou preparado para receber novas funções posteriormente.
+- Removidas referências institucionais antigas do jogo e do código da versão entregue.
+- Créditos padronizados como Professor Kazuo.
+
+ARQUIVOS PRINCIPAIS ALTERADOS
+frontend/lab.html
+frontend/lab.css
+frontend/lab.js
+frontend/javascript_worker.js   (novo)
+frontend/python_worker.js       (novo)
+frontend/index.html             (remoção de referência antiga)
+frontend/game.js                (remoção de referência antiga)
+frontend/lobby.js               (crédito)
+frontend/host.html              (crédito)
+frontend/music.js               (crédito)
+
+PYTHON
+O Python é executado pelo Pyodide no navegador. O arquivo python_worker.js usa a distribuição oficial via CDN.
+Na primeira abertura do laboratório o carregamento pode levar alguns segundos; depois o navegador tende a usar cache.
+
+TESTE LOCAL
+cd C:\batletankemti
+python -m uvicorn app.main:app --reload
+
+Abrir:
+http://127.0.0.1:8000/
+
+Fluxo recomendado de validação:
+1. Criar uma sala pelo professor.
+2. Entrar como aluno.
+3. Iniciar preparação.
+4. Abrir laboratório.
+5. Resolver Motor MK-II em JavaScript.
+6. Resolver Munição MK-II em Python.
+7. Resolver Canhão MK-II alternando a linguagem desejada.
+8. Voltar para o jogo e conferir sincronização dos upgrades.
+9. Iniciar a batalha e confirmar velocidade, velocidade do tiro e cadência.
+10. Conferir o Console do navegador (F12) para garantir que não existam erros vermelhos.
+
+IMPORTANTE
+Não foi alterada a arquitetura principal da arena, movimento, bots, mapas ou combate. A proposta desta atualização é aprimorar a aprendizagem sem desmontar a versão já aprovada como jogável.

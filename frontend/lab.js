@@ -31,6 +31,21 @@ const confirmModal = document.getElementById("confirmModal");
 const blockedOverlay = document.getElementById("blockedOverlay");
 const blockedTitle = document.getElementById("blockedTitle");
 const blockedMessage = document.getElementById("blockedMessage");
+const blockedReturnLink = document.getElementById("blockedReturnLink");
+const isEmbeddedLab = window.parent && window.parent !== window;
+
+if (blockedReturnLink && isEmbeddedLab) {
+    blockedReturnLink.addEventListener("click", (event) => {
+        event.preventDefault();
+
+        try {
+            window.parent.postMessage({ type:"battle-tank-lab-cancelled" }, window.location.origin);
+        } catch (_error) {
+            // Sem ação adicional; o aluno segue vendo a mensagem de bloqueio.
+        }
+    });
+}
+
 const languageLockedBadge = document.getElementById("languageLockedBadge");
 const functionCatalog = document.getElementById("functionCatalog");
 const activeFunctions = document.getElementById("activeFunctions");
@@ -580,16 +595,31 @@ function finalizeProgramming() {
     localStorage.setItem(LAB_RETURN_KEY, JSON.stringify(payload));
 
     try {
-        if (window.opener && !window.opener.closed) {
+        if (isEmbeddedLab) {
+            window.parent.postMessage({ type:"battle-tank-programming-finalized", ...payload }, window.location.origin);
+        }
+        else if (window.opener && !window.opener.closed) {
             window.opener.postMessage({ type:"battle-tank-programming-finalized", ...payload }, window.location.origin);
             window.opener.focus();
-            window.close();
-            return;
         }
     } catch (_error) {
-        // Usa o fallback abaixo.
+        // A sincronização por localStorage abaixo garante o fallback.
     }
-    window.location.href = "index.html?fromLab=1";
+
+    blockLab(
+        "Programação enviada!",
+        isEmbeddedLab
+            ? "Sua preparação já foi registrada. É só aguardar o professor iniciar a arena."
+            : "Sua preparação já foi registrada. Feche esta aba e volte para a tela do jogo para acompanhar a arena."
+    );
+
+    if (!isEmbeddedLab) {
+        try {
+            window.close();
+        } catch (_error) {
+            // Alguns navegadores bloqueiam o fechamento automático da aba; a mensagem acima já orienta o aluno.
+        }
+    }
 }
 
 function monitorPhase() {

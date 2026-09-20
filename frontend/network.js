@@ -382,6 +382,19 @@ class BattleTankNetwork extends EventTarget {
         );
     }
 
+    setBotsEnabled(
+        enabled = true
+    ) {
+        return this.send(
+            {
+                type:
+                    "set_bots_enabled",
+                enabled:
+                    Boolean(enabled)
+            }
+        );
+    }
+
     updateLoadout() {
         return this.send(
             {

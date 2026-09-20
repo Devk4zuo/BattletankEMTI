@@ -1,0 +1,56 @@
+BATTLE TANK EMTI - BOTS NO SERVIDOR V1
+
+VERSÃO DO SERVIDOR: 0.6.0
+
+O QUE MUDA
+===========
+- Bots agora se movimentam pelo FastAPI, não por cada navegador.
+- Bots escolhem o participante vivo mais próximo.
+- Perseguem quando estão longe.
+- Recuam quando ficam perto demais.
+- Circulam o alvo em distância de combate.
+- Tentam contornar obstáculos e outros tanques.
+- O servidor transmite posições de humanos E bots a todos os clientes.
+- O game.js não executa mais a IA local dos bots durante partida online.
+- A autoridade física passa a considerar colisões humano-bot e bot-bot.
+
+IMPORTANTE
+==========
+Nesta etapa os bots se movem e perseguem, mas os TIROS/DANO ainda não são
+autoridade do servidor. Portanto, a partida ainda não deve ser usada para
+validar vencedor automático. A próxima etapa é Combate Multiplayer V1.
+
+CRÉDITO VISUAL
+===============
+Foi adicionado em três pontos:
+- menu inicial do aluno;
+- arena;
+- Central do Professor.
+
+Texto:
+Criado por: Professor Kazuo
+
+SUBSTITUIR NO PROJETO
+=====================
+app/main.py
+frontend/game.js
+frontend/network.js
+frontend/lobby.js
+frontend/lobby.css
+frontend/index.html
+frontend/style.css
+frontend/host.html
+frontend/host.js
+frontend/host.css
+
+TESTE RECOMENDADO
+=================
+1. Execute o servidor local.
+2. Crie uma sessão no /host.
+3. Entre com 1 ou 2 alunos.
+4. Inicie preparação e depois batalha.
+5. Observe bots saindo dos spawns e perseguindo alvos.
+6. Abra dois alunos e confirme que os bots aparecem nas mesmas posições.
+7. Teste o botão ENCERRAR PARTIDA do professor.
+
+Não faça git push até validar localmente.

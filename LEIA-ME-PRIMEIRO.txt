@@ -1,0 +1,26 @@
+BATTLE TANK EMTI - PATCH V2 - LABORATÓRIO JS + PYTHON
+Professor Kazuo
+
+INSTALAÇÃO:
+1. Pare o Uvicorn.
+2. Faça backup de C:\batletankemti.
+3. Extraia ESTE ZIP diretamente dentro de C:\batletankemti.
+4. Confirme SUBSTITUIR OS ARQUIVOS no Windows.
+5. A estrutura correta deve ficar assim:
+   C:\batletankemti\frontend\lab.js
+   C:\batletankemti\frontend\python_worker.js
+   C:\batletankemti\frontend\javascript_worker.js
+6. Inicie novamente:
+   cd C:\batletankemti
+   python -m uvicorn app.main:app --reload
+7. No navegador use Ctrl+F5 uma vez.
+
+SINAL DE QUE O PATCH ENTROU:
+- Cabeçalho: LABORATÓRIO DE PROGRAMAÇÃO
+- Aparece Professor Kazuo
+- Aba Python mostra status carregando... e depois pronto
+- Não deve aparecer a frase "Python será ativado na próxima etapa".
+
+TESTE PYTHON DO DESAFIO MOTOR:
+def potencia_motor(potencia):
+    return potencia * 2

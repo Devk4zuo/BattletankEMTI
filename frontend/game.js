@@ -16,6 +16,38 @@ const ctx =
     canvas.getContext("2d");
 
 
+// Botão de mutar só a música (efeitos sonoros continuam tocando).
+const musicToggleButton =
+    document.getElementById("musicToggleButton");
+
+if (musicToggleButton) {
+
+    function refreshMusicToggleButton() {
+        const isEnabled =
+            window.battleTankMusic &&
+            window.battleTankMusic.isEnabled();
+
+        musicToggleButton.textContent =
+            isEnabled ? "🎵" : "🔇";
+
+        musicToggleButton.classList.toggle(
+            "music-muted",
+            !isEnabled
+        );
+    }
+
+    musicToggleButton.addEventListener("click", () => {
+        if (window.battleTankMusic) {
+            window.battleTankMusic.toggle();
+        }
+
+        refreshMusicToggleButton();
+    });
+
+    refreshMusicToggleButton();
+}
+
+
 const VIEW_WIDTH =
     canvas.width;
 
@@ -191,8 +223,8 @@ window.addEventListener(
 // TAMANHO REAL DO MUNDO
 // ==========================================================
 
-const WORLD_WIDTH = 6144;
-const WORLD_HEIGHT = 3456;
+const WORLD_WIDTH = 12288;
+const WORLD_HEIGHT = 6912;
 
 
 // ==========================================================
@@ -207,6 +239,355 @@ let gameReady = false;
 let assetsLoaded = false;
 let serverMatchState = null;
 let gameLoopStarted = false;
+
+// ==========================================================
+// SOM DE TIRO (sintetizado, sem arquivo de áudio)
+// ==========================================================
+
+let sfxContext = null;
+
+// Canvas auxiliar reutilizável para "tingir" o sprite do tanque
+// (usa a própria imagem como máscara, então a cor só cobre o
+// desenho de verdade, não o retângulo inteiro da imagem).
+const tintCanvas = document.createElement("canvas");
+const tintCtx = tintCanvas.getContext("2d");
+tintCanvas.width = 160;
+tintCanvas.height = 160;
+
+function drawTintedTankOverlay(
+    image,
+    width,
+    height,
+    color,
+    alpha
+) {
+
+    if (
+        width > tintCanvas.width ||
+        height > tintCanvas.height
+    ) {
+        tintCanvas.width = Math.ceil(width);
+        tintCanvas.height = Math.ceil(height);
+    }
+
+    tintCtx.clearRect(
+        0,
+        0,
+        tintCanvas.width,
+        tintCanvas.height
+    );
+
+    tintCtx.drawImage(
+        image,
+        0,
+        0,
+        width,
+        height
+    );
+
+    tintCtx.globalCompositeOperation =
+        "source-atop";
+
+    tintCtx.fillStyle =
+        color;
+
+    tintCtx.fillRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+    tintCtx.globalCompositeOperation =
+        "source-over";
+
+    ctx.globalAlpha =
+        alpha;
+
+    ctx.drawImage(
+        tintCanvas,
+        0,
+        0,
+        width,
+        height,
+        -width / 2,
+        -height / 2,
+        width,
+        height
+    );
+
+    ctx.globalAlpha =
+        1;
+}
+
+
+// Mesmo valor do dano padrão de tiro no servidor (BULLET_DAMAGE = 25) x 2.
+// "faltando 2 tiros" para o tanque no padrão sem upgrades.
+const LOW_HEALTH_BLINK_THRESHOLD = 50;
+function getSfxContext() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioCtx) {
+        return null;
+    }
+
+    if (!sfxContext) {
+        sfxContext = new AudioCtx();
+    }
+
+    if (sfxContext.state === "suspended") {
+        sfxContext.resume();
+    }
+
+    return sfxContext;
+}
+
+function playShotSound() {
+    const ctx = getSfxContext();
+
+    if (!ctx) {
+        return;
+    }
+
+    const now = ctx.currentTime;
+
+    // Estouro de ruído filtrado = "crack" do disparo.
+    const bufferSize = Math.floor(ctx.sampleRate * 0.18);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = "lowpass";
+    noiseFilter.frequency.setValueAtTime(3200, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(280, now + 0.15);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.5, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    // Estampido grave = peso do canhão.
+    const thump = ctx.createOscillator();
+    thump.type = "sine";
+    thump.frequency.setValueAtTime(120, now);
+    thump.frequency.exponentialRampToValueAtTime(38, now + 0.12);
+
+    const thumpGain = ctx.createGain();
+    thumpGain.gain.setValueAtTime(0.45, now);
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    thump.connect(thumpGain);
+    thumpGain.connect(ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + 0.18);
+
+    thump.start(now);
+    thump.stop(now + 0.15);
+}
+
+
+// ==========================================================
+// SOM DE MOTOR (contínuo, sobe/desce de volume ao andar)
+// ==========================================================
+
+let engineGainNode = null;
+
+function ensureEngineSound() {
+
+    if (engineGainNode) {
+        return;
+    }
+
+    const audioCtx =
+        getSfxContext();
+
+    if (!audioCtx) {
+        return;
+    }
+
+    const osc1 =
+        audioCtx.createOscillator();
+
+    osc1.type = "sawtooth";
+    osc1.frequency.value = 52;
+
+    const osc2 =
+        audioCtx.createOscillator();
+
+    osc2.type = "sawtooth";
+    osc2.frequency.value = 78;
+
+    const filter =
+        audioCtx.createBiquadFilter();
+
+    filter.type = "lowpass";
+    filter.frequency.value = 260;
+
+    const gain =
+        audioCtx.createGain();
+
+    gain.gain.value = 0;
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc1.start();
+    osc2.start();
+
+    engineGainNode = gain;
+}
+
+function updateEngineSound(isMoving) {
+
+    const audioCtx =
+        getSfxContext();
+
+    if (!audioCtx) {
+        return;
+    }
+
+    ensureEngineSound();
+
+    if (!engineGainNode) {
+        return;
+    }
+
+    // Discreto de propósito — é um motorzinho de fundo, não protagonista.
+    const targetGain =
+        isMoving ? 0.045 : 0;
+
+    engineGainNode.gain.setTargetAtTime(
+        targetGain,
+        audioCtx.currentTime,
+        0.09
+    );
+}
+
+function playImpactSound() {
+
+    const ctx =
+        getSfxContext();
+
+    if (!ctx) {
+        return;
+    }
+
+    const now =
+        ctx.currentTime;
+
+    // Estouro curto e seco = "clank" de metal recebendo o impacto.
+    const bufferSize =
+        Math.floor(ctx.sampleRate * 0.08);
+
+    const buffer =
+        ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+
+    const data =
+        buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noise =
+        ctx.createBufferSource();
+
+    noise.buffer = buffer;
+
+    const noiseFilter =
+        ctx.createBiquadFilter();
+
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.value = 1400;
+    noiseFilter.Q.value = 0.7;
+
+    const noiseGain =
+        ctx.createGain();
+
+    noiseGain.gain.setValueAtTime(0.4, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    // Ping metálico curto por cima.
+    const ping =
+        ctx.createOscillator();
+
+    ping.type = "triangle";
+    ping.frequency.setValueAtTime(420, now);
+    ping.frequency.exponentialRampToValueAtTime(180, now + 0.1);
+
+    const pingGain =
+        ctx.createGain();
+
+    pingGain.gain.setValueAtTime(0.28, now);
+    pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    ping.connect(pingGain);
+    pingGain.connect(ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + 0.09);
+
+    ping.start(now);
+    ping.stop(now + 0.12);
+}
+
+function playPowerupSound() {
+
+    const ctx =
+        getSfxContext();
+
+    if (!ctx) {
+        return;
+    }
+
+    const now =
+        ctx.currentTime;
+
+    // Três notas curtas e ascendentes = "coletou algo bom".
+    const notes = [660, 880, 1180];
+
+    notes.forEach((frequency, index) => {
+
+        const start =
+            now + index * 0.06;
+
+        const osc =
+            ctx.createOscillator();
+
+        osc.type = "sine";
+        osc.frequency.value = frequency;
+
+        const gain =
+            ctx.createGain();
+
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.22, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.16);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(start);
+        osc.stop(start + 0.18);
+    });
+}
 
 // Movimento multiplayer: o cliente envia intenção de movimento
 // e o servidor confirma a posição oficial dos jogadores humanos.
@@ -356,6 +737,27 @@ function loadImage(src) {
 // ASSETS
 // ==========================================================
 
+// Todos os tipos de barreira/especial existentes hoje.
+// Adicionar um novo tipo aqui é o único passo necessário
+// (o carregamento e o catálogo de tamanho/hitbox vêm do servidor).
+const ALL_BARRIER_TYPES = [
+    "barrier1", "barrier2", "barrier4", "barrier5",
+    "barrier7", "barrier8", "barrier9", "barrier10",
+    "barrier12", "barrier13", "barrier14", "barrier15",
+    "barrier17", "barrier18", "barrier19", "barrier20",
+    "barrier21", "barrier22", "barrier23", "barrier24",
+    "barrier27", "barrier29", "barrier30",
+    "barrier33", "barrier34", "barrier35",
+    "barrier36",
+    "special1", "special2", "special3", "special4", "special5",
+];
+
+function barrierAssetPath(typeName) {
+    const number = typeName.replace("barrier", "").replace("special", "");
+    const fileBase = typeName.startsWith("special") ? "especial" : "barreira";
+    return `assets/obstacles/${fileBase}${number}.png`;
+}
+
 const assets = {
 
     terrains: {
@@ -366,24 +768,7 @@ const assets = {
     },
 
 
-    barriers: {
-
-        barrier1: null,
-
-        barrier2: null,
-
-        barrier4: null,
-
-        barrier5: null,
-
-        barrier7: null,
-
-        barrier8: null,
-
-        barrier9: null,
-
-        barrier10: null
-    },
+    barriers: {},
 
 
     trees: {
@@ -416,18 +801,8 @@ async function loadAssets() {
     try {
 
         const [
-
             mapa1,
             mapa2,
-
-            barrier1,
-            barrier2,
-            barrier4,
-            barrier5,
-            barrier7,
-            barrier8,
-            barrier9,
-            barrier10,
 
             tree1,
             tree2,
@@ -435,86 +810,34 @@ async function loadAssets() {
             tankBlue,
             tankRed,
             tankBeige,
-            tankDark
+            tankDark,
 
+            barrierImages,
         ] = await Promise.all([
 
-
             // TERRENOS
-
-            loadImage(
-                "assets/terrain/mapa1.webp"
-            ),
-
-            loadImage(
-                "assets/terrain/mapa2.webp"
-            ),
-
-
-            // BARREIRAS
-
-            loadImage(
-                "assets/obstacles/barreira1.png"
-            ),
-
-            loadImage(
-                "assets/obstacles/barreira2.png"
-            ),
-
-            loadImage(
-                "assets/obstacles/barreira4.png"
-            ),
-
-            loadImage(
-                "assets/obstacles/barreira5.png"
-            ),
-
-            loadImage(
-                "assets/obstacles/barreira7.png"
-            ),
-
-            loadImage(
-                "assets/obstacles/barreira8.png"
-            ),
-
-            loadImage(
-                "assets/obstacles/barreira9.png"
-            ),
-
-            loadImage(
-                "assets/obstacles/barreira10.png"
-            ),
-
+            loadImage("assets/terrain/mapa1.webp"),
+            loadImage("assets/terrain/mapa2.webp"),
 
             // ÁRVORES - CAMADA DE COBERTURA
             // Não entram na colisão do tanque.
-
-            loadImage(
-                "assets/tree/arvore1.png"
-            ),
-
-            loadImage(
-                "assets/tree/arvore2.png"
-            ),
-
+            loadImage("assets/tree/arvore1.png"),
+            loadImage("assets/tree/arvore2.png"),
 
             // TANQUES
+            loadImage("assets/tanks/tanque_azul.png"),
+            loadImage("assets/tanks/tanque_vermelho.png"),
+            loadImage("assets/tanks/tanque_bege.png"),
+            loadImage("assets/tanks/tanque_escuro.png"),
 
-            loadImage(
-                "assets/tanks/tanque_azul.png"
+            // BARREIRAS + ESPECIAIS
+            // Carregadas em lote: adicionar um novo tipo em
+            // ALL_BARRIER_TYPES é o único passo necessário aqui.
+            Promise.all(
+                ALL_BARRIER_TYPES.map(
+                    (typeName) => loadImage(barrierAssetPath(typeName))
+                )
             ),
-
-            loadImage(
-                "assets/tanks/tanque_vermelho.png"
-            ),
-
-            loadImage(
-                "assets/tanks/tanque_bege.png"
-            ),
-
-            loadImage(
-                "assets/tanks/tanque_escuro.png"
-            )
         ]);
 
 
@@ -525,29 +848,9 @@ async function loadAssets() {
             mapa2;
 
 
-        assets.barriers.barrier1 =
-            barrier1;
-
-        assets.barriers.barrier2 =
-            barrier2;
-
-        assets.barriers.barrier4 =
-            barrier4;
-
-        assets.barriers.barrier5 =
-            barrier5;
-
-        assets.barriers.barrier7 =
-            barrier7;
-
-        assets.barriers.barrier8 =
-            barrier8;
-
-        assets.barriers.barrier9 =
-            barrier9;
-
-        assets.barriers.barrier10 =
-            barrier10;
+        ALL_BARRIER_TYPES.forEach((typeName, index) => {
+            assets.barriers[typeName] = barrierImages[index];
+        });
 
 
         assets.trees.tree1 =
@@ -1577,6 +1880,42 @@ const barrierTypes = {
 };
 
 
+// ==========================================================
+// CATÁLOGO ATIVO DE BARREIRAS (tamanho + hitbox)
+// ==========================================================
+// Em partida real, o servidor manda o catálogo completo
+// (todas as variantes, incluindo as novas) em cada match_start.
+// `barrierTypes` acima fica só como fallback do modo offline
+// (sem servidor), que continua usando as 8 barreiras originais.
+let activeBarrierCatalog = barrierTypes;
+
+function buildBarrierCatalogFromServer(serverCatalog) {
+    if (!serverCatalog) {
+        return null;
+    }
+
+    const catalog = {};
+
+    for (const typeName of Object.keys(serverCatalog)) {
+        const entry = serverCatalog[typeName];
+
+        catalog[typeName] = {
+            image: entry.image,
+            width: entry.width,
+            height: entry.height,
+            hitbox: {
+                x: entry.hitbox.x,
+                y: entry.hitbox.y,
+                width: entry.hitbox.width,
+                height: entry.hitbox.height,
+            },
+        };
+    }
+
+    return catalog;
+}
+
+
 const barrierTypeNames = [
 
     "barrier1",
@@ -1663,7 +2002,7 @@ function getBarrierHitbox(
 ) {
 
     const config =
-        barrierTypes[
+        activeBarrierCatalog[
             barrier.type
         ];
 
@@ -2821,10 +3160,32 @@ function applyServerMatchState(
                 )
             )
         ) {
-            participant.life =
-                Number(
-                    state.life
+            const newLife =
+                Number(state.life);
+
+            const previousLife =
+                Number.isFinite(participant.life)
+                    ? participant.life
+                    : newLife;
+
+            // Vida caiu = levou um tiro (seja o tanque local ou
+            // outro). O servidor é quem decide isso; o cliente só
+            // reage ao que já aconteceu, mostrando o efeito e o som.
+            if (
+                newLife < previousLife &&
+                participant.alive
+            ) {
+
+                createImpactParticles(
+                    participant.x,
+                    participant.y
                 );
+
+                playImpactSound();
+            }
+
+            participant.life =
+                newLife;
         }
 
 
@@ -2840,6 +3201,16 @@ function applyServerMatchState(
                     state.kills
                 );
         }
+
+
+        participant.invincible =
+            Boolean(state.invincible);
+
+        participant.quadShot =
+            Boolean(state.quadShot);
+
+        participant.speedBoost =
+            Boolean(state.speedBoost);
     }
 
     // ======================================================
@@ -2905,6 +3276,77 @@ function applyServerMatchState(
                 serverControlled:
                     true
             });
+        }
+    }
+
+
+    if (
+        Array.isArray(
+            detail.powerups
+        )
+    ) {
+
+        const previousPowerups =
+            powerups.slice();
+
+        powerups.length =
+            0;
+
+        for (
+            const serverPowerup
+            of detail.powerups
+        ) {
+
+            powerups.push({
+                id:
+                    serverPowerup.id,
+
+                type:
+                    serverPowerup.type,
+
+                x:
+                    Number(
+                        serverPowerup.x
+                    ),
+
+                y:
+                    Number(
+                        serverPowerup.y
+                    ),
+            });
+        }
+
+
+        // Um power-up que sumiu perto do jogador local = foi ele
+        // quem pegou. É só um efeito de som local, então uma
+        // aproximação por distância é suficiente aqui.
+        if (localPlayer) {
+
+            const stillHere =
+                new Set(
+                    powerups.map(p => p.id)
+                );
+
+            for (
+                const oldPowerup
+                of previousPowerups
+            ) {
+
+                if (stillHere.has(oldPowerup.id)) {
+                    continue;
+                }
+
+                const distance =
+                    Math.hypot(
+                        localPlayer.x - oldPowerup.x,
+                        localPlayer.y - oldPowerup.y
+                    );
+
+                if (distance <= 90) {
+                    playPowerupSound();
+                    break;
+                }
+            }
         }
     }
 
@@ -3053,6 +3495,9 @@ function updateLocalPlayer() {
         !localPlayer.alive
     ) {
 
+        updateEngineSound(false);
+
+
         if (
             serverMatchState
         ) {
@@ -3076,6 +3521,11 @@ function updateLocalPlayer() {
 
     const moveY =
         input.moveY;
+
+
+    updateEngineSound(
+        moveX !== 0 || moveY !== 0
+    );
 
 
     if (
@@ -3729,6 +4179,7 @@ function updateBots() {
 // ==========================================================
 
 const bullets = [];
+const powerups = [];
 
 let lastShot =
     0;
@@ -3844,6 +4295,8 @@ function shoot() {
         window.battleTankNetwork
             .sendPlayerShoot();
 
+        playShotSound();
+
 
         // Feedback imediato do cano, sem criar dano local.
         const shotAngle =
@@ -3881,6 +4334,8 @@ function shoot() {
         localPlayer.angle -
         Math.PI / 2;
 
+
+    playShotSound();
 
     fireProjectile(
         localPlayer,
@@ -4280,6 +4735,107 @@ function createImpactParticles(
 }
 
 
+// ==========================================================
+// POEIRA ATRÁS DOS TANQUES EM MOVIMENTO
+// ==========================================================
+
+const dustTrailLastPos = new Map();
+
+function createDustParticles(
+    x,
+    y
+) {
+
+    for (
+        let i = 0;
+        i < 2;
+        i++
+    ) {
+
+        particles.push({
+
+            x:
+                x +
+                (Math.random() * 14 - 7),
+
+            y:
+                y +
+                (Math.random() * 14 - 7),
+
+            vx:
+                Math.random() * 1.1 - 0.55,
+
+            vy:
+                Math.random() * 1.1 - 0.55,
+
+            size:
+                Math.random() * 7 + 5,
+
+            life:
+                1,
+
+            fade:
+                0.018,
+
+            type:
+                "dust"
+        });
+    }
+}
+
+function maybeSpawnDustTrail(
+    participant
+) {
+
+    const previous =
+        dustTrailLastPos.get(
+            participant.id
+        );
+
+    dustTrailLastPos.set(
+        participant.id,
+        { x: participant.x, y: participant.y }
+    );
+
+    if (!previous) {
+        return;
+    }
+
+    const dx =
+        participant.x - previous.x;
+
+    const dy =
+        participant.y - previous.y;
+
+    const distance =
+        Math.hypot(dx, dy);
+
+    // Só levanta poeira quando o tanque está de fato andando.
+    if (distance < 0.6) {
+        return;
+    }
+
+    // Um pouco de aleatoriedade pra não ficar um rastro contínuo demais.
+    if (Math.random() > 0.55) {
+        return;
+    }
+
+    const travelAngle =
+        Math.atan2(dy, dx);
+
+    const rearOffset =
+        (participant.height || 58) / 2;
+
+    createDustParticles(
+        participant.x -
+        Math.cos(travelAngle) * rearOffset * 0.7,
+
+        participant.y -
+        Math.sin(travelAngle) * rearOffset * 0.7
+    );
+}
+
+
 function updateParticles() {
 
     for (
@@ -4314,7 +4870,7 @@ function updateParticles() {
 
 
         particle.life -=
-            0.04;
+            (particle.fade || 0.04);
 
 
         if (
@@ -4532,7 +5088,7 @@ function drawTerrain() {
     }
 
 
-    // Os novos mapas têm exatamente 6144 x 3456,
+    // Os mapas têm exatamente 12288 x 6912,
     // a mesma resolução lógica do mundo. Portanto a câmera
     // recorta pixels reais do mapa, sem ampliar o terreno.
     const scaleX =
@@ -4621,6 +5177,85 @@ function drawTerrain() {
 
 
 // ==========================================================
+// POWER-UPS NA ARENA
+// ==========================================================
+
+const POWERUP_VISUALS = {
+    speed: { color: "#5ac8ff", symbol: "»" },
+    invincibility: { color: "#ffd966", symbol: "★" },
+    quadshot: { color: "#ff6b6b", symbol: "×4" },
+    heal: { color: "#7CFC9A", symbol: "+" },
+};
+
+function drawPowerups() {
+
+    for (
+        const powerup
+        of powerups
+    ) {
+
+        const screenX =
+            worldToScreenX(powerup.x);
+
+        const screenY =
+            worldToScreenY(powerup.y);
+
+        if (
+            screenX < -60 ||
+            screenX > VIEW_WIDTH + 60 ||
+            screenY < -60 ||
+            screenY > VIEW_HEIGHT + 60
+        ) {
+            continue;
+        }
+
+        const visual =
+            POWERUP_VISUALS[powerup.type] ||
+            { color: "#ffffff", symbol: "?" };
+
+        // Flutua suavemente pra chamar atenção.
+        const bobOffset =
+            Math.sin(performance.now() / 260 + powerup.x) * 4;
+
+        const radius = 22;
+
+        ctx.save();
+
+        ctx.translate(screenX, screenY + bobOffset);
+
+        // Auréola pulsante.
+        const glowAlpha =
+            0.25 + (Math.sin(performance.now() / 200) + 1) / 2 * 0.2;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, radius + 6, 0, Math.PI * 2);
+        ctx.globalAlpha = glowAlpha;
+        ctx.fillStyle = visual.color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Disco principal.
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(10, 14, 10, 0.85)";
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = visual.color;
+        ctx.stroke();
+
+        // Símbolo.
+        ctx.fillStyle = visual.color;
+        ctx.font = "bold 20px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(visual.symbol, 0, 1);
+
+        ctx.restore();
+    }
+}
+
+
+// ==========================================================
 // DESENHAR BARREIRAS
 // ==========================================================
 
@@ -4632,7 +5267,7 @@ function drawBarriers() {
     ) {
 
         const config =
-            barrierTypes[
+            activeBarrierCatalog[
                 barrier.type
             ];
 
@@ -4932,6 +5567,11 @@ function drawParticipant(
     }
 
 
+    maybeSpawnDustTrail(
+        participant
+    );
+
+
     const screenX =
         worldToScreenX(
             participant.x
@@ -5039,6 +5679,42 @@ function drawParticipant(
     );
 
 
+    // Pouca vida = pisca vermelho por cima do tanque (só onde tem
+    // desenho, não o retângulo inteiro), como alerta.
+    if (
+        participant.life > 0 &&
+        participant.life <= LOW_HEALTH_BLINK_THRESHOLD
+    ) {
+
+        const blinkAlpha =
+            (Math.sin(performance.now() / 120) + 1) / 2;
+
+        drawTintedTankOverlay(
+            image,
+            participant.width,
+            participant.height,
+            "#ff2a2a",
+            blinkAlpha * 0.6
+        );
+    }
+
+
+    // Invencibilidade (power-up) = pisca branco, mesma técnica.
+    if (participant.invincible) {
+
+        const blinkAlpha =
+            (Math.sin(performance.now() / 90) + 1) / 2;
+
+        drawTintedTankOverlay(
+            image,
+            participant.width,
+            participant.height,
+            "#ffffff",
+            blinkAlpha * 0.65
+        );
+    }
+
+
     ctx.restore();
 
 
@@ -5112,7 +5788,7 @@ function drawParticipant(
     const lifePercentage =
 
         participant.life /
-        100;
+        (participant.maxLife || 300);
 
 
     ctx.fillStyle =
@@ -5341,12 +6017,23 @@ function drawBullets() {
 // PARTÍCULAS
 // ==========================================================
 
-function drawParticles() {
+function drawParticles(
+    onlyDust = false
+) {
 
     for (
         const particle
         of particles
     ) {
+
+        const isDust =
+            particle.type === "dust";
+
+        // Poeira desenha numa passada separada (atrás do tanque);
+        // faísca/impacto desenham na passada normal (na frente).
+        if (onlyDust !== isDust) {
+            continue;
+        }
 
         const screenX =
             worldToScreenX(
@@ -5372,6 +6059,22 @@ function drawParticles() {
                     170,
                     40,
                     ${particle.life}
+                )`;
+
+        }
+
+        else if (
+            particle.type ===
+            "dust"
+        ) {
+
+            ctx.fillStyle =
+
+                `rgba(
+                    176,
+                    156,
+                    118,
+                    ${particle.life * 0.4}
                 )`;
 
         }
@@ -6172,7 +6875,14 @@ function draw() {
     drawBarriers();
 
 
+    drawPowerups();
+
+
     drawBullets();
+
+
+    // Poeira desenha ANTES dos tanques, pra ficar por baixo.
+    drawParticles(true);
 
 
     drawParticipants();
@@ -6183,7 +6893,8 @@ function draw() {
     drawTrees();
 
 
-    drawParticles();
+    // Faísca de tiro e impacto desenham DEPOIS, por cima.
+    drawParticles(false);
 
 
     drawVignette();
@@ -6411,6 +7122,11 @@ if (
 
             serverMatchState =
                 event.detail;
+
+            activeBarrierCatalog =
+                buildBarrierCatalogFromServer(
+                    serverMatchState.barrier_catalog
+                ) || barrierTypes;
 
 
             console.log(

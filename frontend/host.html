@@ -14,7 +14,7 @@
 
     <link
         rel="stylesheet"
-        href="host.css"
+        href="host.css?v=bots4"
     >
 </head>
 
@@ -43,6 +43,12 @@
             id="createPanel"
             class="create-panel"
         >
+            <img
+                src="tela.png?v=bots4"
+                alt="Battle Tank EMTI"
+                class="title-banner"
+            >
+
             <div>
                 <h2>
                     Abrir uma nova sessão
@@ -53,13 +59,27 @@
                 </p>
             </div>
 
-            <button
-                id="createRoomButton"
-                class="primary-button"
-                disabled
-            >
-                CRIAR PARTIDA
-            </button>
+            <div class="create-actions-row">
+                <button
+                    id="toggleBotsButton"
+                    class="toggle-bots-button bots-disabled"
+                    type="button"
+                >
+                    BOTS: DESATIVADOS
+                </button>
+
+                <button
+                    id="createRoomButton"
+                    class="primary-button"
+                    disabled
+                >
+                    CRIAR PARTIDA
+                </button>
+            </div>
+
+            <p class="bots-hint">
+                Deixe desativado nas aulas com os alunos. Ative só quando for testar a partida sozinho.
+            </p>
         </section>
 
         <section
@@ -272,8 +292,8 @@
         </footer>
     </main>
 
-    <script src="network.js"></script>
+    <script src="network.js?v=bots4"></script>
     <script src="music.js"></script>
-    <script src="host.js"></script>
+    <script src="host.js?v=bots4"></script>
 </body>
 </html>
