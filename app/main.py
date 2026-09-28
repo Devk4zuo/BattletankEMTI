@@ -64,12 +64,12 @@ PROGRAM_FUNCTION_EFFECTS: dict[str, dict[str, float]] = {
     "alcance": {"bulletLifetime": 2.0},
     "precisao": {"bulletSpread": 3.0},
     "estabilizador": {"bulletSpread": 2.0},
-    "blindagem": {"maxLife": 75.0},
-    "blindagem2": {"maxLife": 45.0},
+    "blindagem": {"maxLife": 126.0},
+    "blindagem2": {"maxLife": 76.0},
     "escudo": {"damageReduction": 0.15},
     "amortecimento": {"damageReduction": 0.10},
     "regeneracao": {"regen": 1.0},
-    "emergencia": {"maxLife": 30.0, "regen": 0.5},
+    "emergencia": {"maxLife": 50.0, "regen": 0.5},
 }
 
 SPAWN_POINTS = [
@@ -132,6 +132,18 @@ SPECIAL_BARRIER_SIZES = {
     "special3": (516, 919),
     "special4": (845, 564),
     "special5": (845, 564),
+    "special6": (616, 770),
+    "special7": (616, 766),
+    "special8": (285, 356),
+    "special9": (280, 354),
+    "special10": (283, 355),
+    "special11": (842, 562),
+    "special12": (282, 356),
+    "special13": (616, 770),
+    "special14": (688, 688),
+    "special15": (278, 355),
+    "special16": (596, 795),
+    "special17": (616, 770),
 }
 
 BARRIER_POOL = [
@@ -148,6 +160,9 @@ BARRIER_POOL = [
 # Sorteadas à parte: exatamente 1 de cada, nunca repetem no mesmo mapa.
 SPECIAL_BARRIER_POOL = [
     "special1", "special2", "special3", "special4", "special5",
+    "special6", "special7", "special8", "special9", "special10",
+    "special11", "special12", "special13", "special14", "special15",
+    "special16", "special17",
 ]
 
 # Árvores são cobertura visual, não barreiras físicas.
@@ -193,8 +208,8 @@ BULLET_MAX_LIFETIME_SECONDS = 5.0
 # ============================================================
 
 POWERUP_RADIUS = 45.0
-POWERUP_SPAWN_INTERVAL_SECONDS = 18.0
-POWERUP_MAX_ACTIVE = 4
+POWERUP_SPAWN_INTERVAL_SECONDS = 3.0
+POWERUP_MAX_ACTIVE = 20
 
 POWERUP_SPEED_MULTIPLIER = 1.6
 POWERUP_SPEED_DURATION_SECONDS = 6.0
@@ -212,6 +227,21 @@ POWERUP_POOL = [
     "heal", "heal", "heal",
     "quadshot",
 ]
+
+# ============================================================
+# ATAQUE AÉREO (avião ou disco voador cruzam o mapa e soltam
+# bombas leves — dano baixo, é mais susto/dinâmica do que ameaça
+# de verdade). O aviso chega ao cliente ANTES do impacto, dando
+# tempo do jogador desviar.
+# ============================================================
+
+AIRRAID_INTERVAL_SECONDS = 25.0
+AIRRAID_BOMB_COUNT = 5
+AIRRAID_BOMB_DAMAGE = 1.0
+AIRRAID_BLAST_RADIUS = 160.0
+AIRRAID_BOMB_SPACING_SECONDS = 0.7
+AIRRAID_WARNING_SECONDS = 2.2
+AIRRAID_VEHICLES = ["plane", "ufo"]
 
 BARRIER_HITBOXES = {
     "barrier1": (0.08, 0.38, 0.84, 0.28),
@@ -249,6 +279,18 @@ SPECIAL_BARRIER_HITBOXES = {
     "special3": (0.08, 0.08, 0.84, 0.84),
     "special4": (0.08, 0.08, 0.84, 0.84),
     "special5": (0.08, 0.08, 0.84, 0.84),
+    "special6": (0.08, 0.08, 0.84, 0.84),
+    "special7": (0.08, 0.08, 0.84, 0.84),
+    "special8": (0.08, 0.08, 0.84, 0.84),
+    "special9": (0.08, 0.08, 0.84, 0.84),
+    "special10": (0.08, 0.08, 0.84, 0.84),
+    "special11": (0.08, 0.08, 0.84, 0.84),
+    "special12": (0.08, 0.08, 0.84, 0.84),
+    "special13": (0.08, 0.08, 0.84, 0.84),
+    "special14": (0.08, 0.08, 0.84, 0.84),
+    "special15": (0.08, 0.08, 0.84, 0.84),
+    "special16": (0.08, 0.08, 0.84, 0.84),
+    "special17": (0.08, 0.08, 0.84, 0.84),
 }
 
 # Fonte única de verdade sobre tamanho/hitbox de cada barreira.
@@ -340,7 +382,7 @@ def base_loadout(skin: str = "azul") -> dict[str, Any]:
         "bulletRadius": 4.0,
         "bulletLifetime": 5.0,
         "bulletSpread": 6.0,
-        "maxLife": 300,
+        "maxLife": 500,
         "damageReduction": 0.0,
         "regen": 0.0,
         "programmedFunctions": [],
@@ -417,7 +459,7 @@ def derive_loadout_from_functions(
         clamp(explicit_spread if explicit_spread is not None else 6.0, 1.5, 10.0, 6.0),
         2,
     )
-    loadout["maxLife"] = int(clamp(loadout["maxLife"], 240, 480, 300))
+    loadout["maxLife"] = int(clamp(loadout["maxLife"], 400, 800, 500))
     loadout["damageReduction"] = round(clamp(loadout["damageReduction"], 0.0, 0.35, 0.0), 3)
     loadout["regen"] = round(clamp(loadout["regen"], 0.0, 2.0, 0.0), 2)
     loadout["programmedFunctions"] = selected
@@ -710,7 +752,7 @@ def apply_powerup_effect(
         participant["quadShotUntil"] = now + POWERUP_QUADSHOT_DURATION_SECONDS
 
     elif powerup_type == "heal":
-        max_life = float(participant.get("maxLife", 300))
+        max_life = float(participant.get("maxLife", 500))
         current_life = float(participant.get("life", max_life))
         participant["life"] = min(max_life, current_life + POWERUP_HEAL_AMOUNT)
 
@@ -743,6 +785,113 @@ def collect_powerups_for(
         if distance <= pickup_radius:
             apply_powerup_effect(participant, powerup["type"], now)
             powerups.pop(index)
+
+
+def start_air_raid(
+    match: dict[str, Any],
+    now: float,
+) -> dict[str, Any]:
+    """Planeja uma passagem de avião/disco voador com algumas bombas
+    ao longo de uma linha aleatória cruzando o mapa. Devolve o aviso
+    pronto para transmitir ao cliente (que anima o veículo e mostra
+    a mira de cada bomba antes do estouro)."""
+
+    vehicle = random.choice(AIRRAID_VEHICLES)
+    margin = 700.0
+
+    if random.random() < 0.5:
+        y = margin + random.random() * (WORLD_HEIGHT - margin * 2)
+        x1, y1 = -300.0, y
+        x2, y2 = WORLD_WIDTH + 300.0, y + random.uniform(-500, 500)
+    else:
+        x = margin + random.random() * (WORLD_WIDTH - margin * 2)
+        x1, y1 = x, -300.0
+        x2, y2 = x + random.uniform(-500, 500), WORLD_HEIGHT + 300.0
+
+    bombs: list[dict[str, Any]] = []
+
+    for i in range(AIRRAID_BOMB_COUNT):
+        t = (i + 1) / (AIRRAID_BOMB_COUNT + 1)
+
+        bomb_x = max(
+            200.0,
+            min(WORLD_WIDTH - 200.0, x1 + (x2 - x1) * t + random.uniform(-260, 260)),
+        )
+        bomb_y = max(
+            200.0,
+            min(WORLD_HEIGHT - 200.0, y1 + (y2 - y1) * t + random.uniform(-260, 260)),
+        )
+
+        impact_at = (
+            now
+            + AIRRAID_WARNING_SECONDS
+            + i * AIRRAID_BOMB_SPACING_SECONDS
+        )
+
+        bombs.append(
+            {
+                "x": round(bomb_x, 1),
+                "y": round(bomb_y, 1),
+                "impact_at": impact_at,
+                "resolved": False,
+            }
+        )
+
+    match["pending_bombs"] = match.get("pending_bombs", []) + bombs
+
+    return {
+        "type": "air_raid",
+        "vehicle": vehicle,
+        "bombs": [
+            {
+                "x": bomb["x"],
+                "y": bomb["y"],
+                "delay": round(bomb["impact_at"] - now, 2),
+            }
+            for bomb in bombs
+        ],
+    }
+
+
+def resolve_air_raid_bombs(
+    match: dict[str, Any],
+    now: float,
+) -> None:
+    pending = match.get("pending_bombs", [])
+
+    for bomb in pending:
+        if bomb["resolved"] or now < bomb["impact_at"]:
+            continue
+
+        bomb["resolved"] = True
+
+        for participant in match.get("participants", []):
+            if not participant.get("alive", True):
+                continue
+
+            if now < float(participant.get("invincibleUntil", 0)):
+                continue
+
+            distance = math.hypot(
+                float(participant.get("x", 0)) - bomb["x"],
+                float(participant.get("y", 0)) - bomb["y"],
+            )
+
+            if distance <= AIRRAID_BLAST_RADIUS:
+                participant["life"] = max(
+                    0.0,
+                    float(participant.get("life", 0)) - AIRRAID_BOMB_DAMAGE,
+                )
+
+                if participant["life"] <= 0:
+                    participant["alive"] = False
+
+    # Limpa bombas já resolvidas há mais de alguns segundos.
+    match["pending_bombs"] = [
+        bomb
+        for bomb in pending
+        if not bomb["resolved"] or (now - bomb["impact_at"]) < 3.0
+    ]
 
 
 def generate_trees(
@@ -873,10 +1022,10 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
                 "bulletRadius": BULLET_RADIUS,
                 "bulletLifetime": BULLET_MAX_LIFETIME_SECONDS,
                 "bulletSpread": 6.0,
-                "maxLife": 300,
+                "maxLife": 500,
                 "damageReduction": 0.0,
                 "regen": 0.0,
-                "life": 300.0,
+                "life": 500.0,
                 "kills": 0,
                 "lastShotAt": -999.0,
                 "ai": {
@@ -916,6 +1065,8 @@ def build_match(room: dict[str, Any]) -> dict[str, Any]:
         "bullet_counter": 0,
         "powerups": [],
         "next_powerup_spawn_at": 0.0,
+        "pending_bombs": [],
+        "next_airraid_at": 0.0,
     }
 
 
@@ -1318,7 +1469,7 @@ def update_server_bullets(
         effective_damage = max(1.0, raw_damage * (1.0 - reduction))
         hit_participant["life"] = max(
             0.0,
-            float(hit_participant.get("life", hit_participant.get("maxLife", 300)))
+            float(hit_participant.get("life", hit_participant.get("maxLife", 500)))
             - effective_damage,
         )
 
@@ -1385,6 +1536,28 @@ def normalized_vector(
         return 0.0, 0.0
 
     return x / length, y / length
+
+
+# Giro máximo por segundo (rad/s). Dá pra girar 360° em ~0,45s —
+# ágil, mas suave, em vez do tanque "teleportar" pro novo ângulo.
+TANK_TURN_RATE_RADIANS_PER_SECOND = 14.0
+
+
+def rotate_toward(
+    current_angle: float,
+    target_angle: float,
+    max_delta: float,
+) -> float:
+    """Gira `current_angle` em direção a `target_angle`, pelo caminho
+    mais curto, sem passar de `max_delta` radianos nesse passo."""
+    diff = (target_angle - current_angle + math.pi) % (2 * math.pi) - math.pi
+
+    if diff > max_delta:
+        diff = max_delta
+    elif diff < -max_delta:
+        diff = -max_delta
+
+    return current_angle + diff
 
 
 def try_server_bot_step(
@@ -1478,7 +1651,11 @@ def update_server_bot(
 
     target_angle = math.atan2(dy, dx)
 
-    bot["angle"] = target_angle + math.pi / 2
+    bot["angle"] = rotate_toward(
+        float(bot.get("angle", target_angle + math.pi / 2)),
+        target_angle + math.pi / 2,
+        TANK_TURN_RATE_RADIANS_PER_SECOND * dt,
+    )
 
     attack_range = float(
         ai.get("attackRange", 1800.0)
@@ -1585,8 +1762,8 @@ def match_state_payload(room: dict[str, Any]) -> dict[str, Any]:
             "y": round(float(participant.get("y", 0)), 2),
             "angle": round(float(participant.get("angle", 0)), 5),
             "alive": bool(participant.get("alive", True)),
-            "life": int(round(float(participant.get("life", 300)))),
-            "maxLife": int(participant.get("maxLife", 300)),
+            "life": int(round(float(participant.get("life", 500)))),
+            "maxLife": int(participant.get("maxLife", 500)),
             "kills": int(participant.get("kills", 0)),
             "invincible": now < float(participant.get("invincibleUntil", 0)),
             "quadShot": now < float(participant.get("quadShotUntil", 0)),
@@ -1688,9 +1865,15 @@ async def match_loop(
             if abs(move_x) < 0.0001 and abs(move_y) < 0.0001:
                 continue
 
-            participant["angle"] = (
+            target_angle = (
                 math.atan2(move_y, move_x)
                 + math.pi / 2
+            )
+
+            participant["angle"] = rotate_toward(
+                float(participant.get("angle", target_angle)),
+                target_angle,
+                TANK_TURN_RATE_RADIANS_PER_SECOND * dt,
             )
 
             speed_multiplier = (
@@ -1739,6 +1922,19 @@ async def match_loop(
             if participant.get("alive", True):
                 collect_powerups_for(match, participant, now)
 
+        # Ataque aéreo: aviso periódico + resolução das bombas
+        # já anunciadas cujo horário de impacto chegou.
+        if now >= float(match.get("next_airraid_at", 0)):
+            air_raid_payload = start_air_raid(match, now)
+            match["next_airraid_at"] = now + AIRRAID_INTERVAL_SECONDS
+
+            await manager.broadcast_to_clients(
+                get_room_client_ids(room),
+                air_raid_payload,
+            )
+
+        resolve_air_raid_bombs(match, now)
+
         # IA dos bots agora também é calculada pelo servidor.
         for participant in match.get("participants", []):
             if (
@@ -1766,7 +1962,7 @@ async def match_loop(
             regen = float(clamp(participant.get("regen"), 0.0, 2.0, 0.0))
             if regen <= 0:
                 continue
-            max_life = float(participant.get("maxLife", 300))
+            max_life = float(participant.get("maxLife", 500))
             current_life = float(participant.get("life", max_life))
             participant["life"] = min(max_life, current_life + regen * dt)
 
@@ -2021,6 +2217,9 @@ async def start_match(room_code: str) -> None:
     room["match"] = build_match(room)
     room["match"]["next_powerup_spawn_at"] = (
         time.monotonic() + POWERUP_SPAWN_INTERVAL_SECONDS
+    )
+    room["match"]["next_airraid_at"] = (
+        time.monotonic() + AIRRAID_INTERVAL_SECONDS
     )
     room["status"] = "running"
     room["player_inputs"] = {}

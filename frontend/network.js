@@ -166,6 +166,8 @@ class BattleTankNetwork extends EventTarget {
                 "match-state",
             match_ended:
                 "match-ended",
+            air_raid:
+                "air-raid",
             join_error:
                 "join-error",
             room_error:

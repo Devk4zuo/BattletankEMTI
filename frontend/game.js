@@ -589,6 +589,132 @@ function playPowerupSound() {
     });
 }
 
+function playThunderSound() {
+
+    const ctx =
+        getSfxContext();
+
+    if (!ctx) {
+        return;
+    }
+
+    const now =
+        ctx.currentTime;
+
+    // Ruído grave e longo, com um "estalo" inicial mais agudo —
+    // trovão distante, não é pra ser mais alto que o resto do jogo.
+    const bufferSize =
+        Math.floor(ctx.sampleRate * 0.9);
+
+    const buffer =
+        ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+
+    const data =
+        buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.5);
+    }
+
+    const noise =
+        ctx.createBufferSource();
+
+    noise.buffer = buffer;
+
+    const filter =
+        ctx.createBiquadFilter();
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.exponentialRampToValueAtTime(120, now + 0.9);
+
+    const gain =
+        ctx.createGain();
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.32, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + 0.9);
+}
+
+function playBombSound() {
+
+    const ctx =
+        getSfxContext();
+
+    if (!ctx) {
+        return;
+    }
+
+    const now =
+        ctx.currentTime;
+
+    // Estouro de ruído + estampido grave, mais "cheio" que o
+    // impacto de tiro comum — é uma bomba, não uma bala.
+    const bufferSize =
+        Math.floor(ctx.sampleRate * 0.35);
+
+    const buffer =
+        ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+
+    const data =
+        buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noise =
+        ctx.createBufferSource();
+
+    noise.buffer = buffer;
+
+    const filter =
+        ctx.createBiquadFilter();
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2200, now);
+    filter.frequency.exponentialRampToValueAtTime(150, now + 0.32);
+
+    const noiseGain =
+        ctx.createGain();
+
+    noiseGain.gain.setValueAtTime(0.55, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    const thump =
+        ctx.createOscillator();
+
+    thump.type = "sine";
+    thump.frequency.setValueAtTime(85, now);
+    thump.frequency.exponentialRampToValueAtTime(28, now + 0.3);
+
+    const thumpGain =
+        ctx.createGain();
+
+    thumpGain.gain.setValueAtTime(0.55, now);
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+    thump.connect(thumpGain);
+    thumpGain.connect(ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + 0.35);
+
+    thump.start(now);
+    thump.stop(now + 0.32);
+}
+
 // Movimento multiplayer: o cliente envia intenção de movimento
 // e o servidor confirma a posição oficial dos jogadores humanos.
 let movementSequence = 0;
@@ -750,6 +876,9 @@ const ALL_BARRIER_TYPES = [
     "barrier33", "barrier34", "barrier35",
     "barrier36",
     "special1", "special2", "special3", "special4", "special5",
+    "special6", "special7", "special8", "special9", "special10",
+    "special11", "special12", "special13", "special14", "special15",
+    "special16", "special17",
 ];
 
 function barrierAssetPath(typeName) {
@@ -951,6 +1080,579 @@ let spectatorTargetId =
     null;
 
 
+// ==========================================================
+// ATMOSFERA DA PARTIDA (efeito visual, não mexe na física real)
+// ==========================================================
+// A cada ciclo de ~90s de batalha: escurece gradualmente por um
+// tempo ("cai a noite") e, logo depois, um tremor curto de câmera.
+// Tudo isso é só desenho — a posição real dos tanques/tiros no
+// servidor nunca é afetada, então não muda a jogabilidade de verdade.
+
+// ==========================================================
+// ATMOSFERA DA PARTIDA (efeito visual/sonoro, não mexe na física)
+// ==========================================================
+// Ciclo de ~100s de batalha com 3 eventos, cada um avisado por uma
+// faixa de texto alguns segundos antes de começar:
+//   - Tempestade (chuva + raios aleatórios)
+//   - Noite (escurece e clareia de volta)
+//   - Tremor (câmera balança rapidamente)
+// Tudo isso é só desenho/som — a posição real dos tanques/tiros
+// no servidor nunca é afetada, então não muda a jogabilidade.
+
+let matchStartedAt = null;
+
+const ATMOSPHERE_CYCLE_SECONDS = 100;
+
+const RAIN_WINDOW_START = 25;
+const RAIN_FADE_SECONDS = 3;
+const RAIN_HOLD_SECONDS = 10;
+
+const NIGHT_WINDOW_START = 58;
+const NIGHT_FADE_SECONDS = 4;
+const NIGHT_HOLD_SECONDS = 10;
+
+const TREMOR_WINDOW_START = 84;
+const TREMOR_DURATION_SECONDS = 7;
+
+// Tempo de "mira" mostrado antes de uma bomba explodir (visual —
+// o servidor já manda o atraso exato de cada bomba junto do aviso).
+const AIRRAID_TELEGRAPH_MS = 2200;
+
+let currentAtmosphere = {
+    nightAlpha: 0,
+    rainIntensity: 0,
+    shakeX: 0,
+    shakeY: 0,
+};
+
+function easeWindow(
+    cycleTime,
+    start,
+    fadeIn,
+    hold,
+    fadeOut
+) {
+
+    const holdEnd = start + fadeIn + hold;
+    const end = holdEnd + fadeOut;
+
+    if (cycleTime < start || cycleTime >= end) {
+        return 0;
+    }
+
+    const t = cycleTime - start;
+
+    if (t < fadeIn) {
+        return t / fadeIn;
+    }
+
+    if (cycleTime < holdEnd) {
+        return 1;
+    }
+
+    return 1 - (cycleTime - holdEnd) / fadeOut;
+}
+
+function computeAtmosphereState() {
+
+    if (!matchStartedAt) {
+        return { nightAlpha: 0, rainIntensity: 0, shakeX: 0, shakeY: 0 };
+    }
+
+    const elapsedSeconds =
+        (performance.now() - matchStartedAt) / 1000;
+
+    const cycleTime =
+        elapsedSeconds % ATMOSPHERE_CYCLE_SECONDS;
+
+    const rainIntensity =
+        easeWindow(
+            cycleTime,
+            RAIN_WINDOW_START,
+            RAIN_FADE_SECONDS,
+            RAIN_HOLD_SECONDS,
+            RAIN_FADE_SECONDS
+        );
+
+    const nightAlpha =
+        easeWindow(
+            cycleTime,
+            NIGHT_WINDOW_START,
+            NIGHT_FADE_SECONDS,
+            NIGHT_HOLD_SECONDS,
+            NIGHT_FADE_SECONDS
+        );
+
+    // --- Tremor curto de câmera ---
+    let shakeX = 0;
+    let shakeY = 0;
+    const tremorEnd =
+        TREMOR_WINDOW_START + TREMOR_DURATION_SECONDS;
+
+    if (
+        cycleTime >= TREMOR_WINDOW_START &&
+        cycleTime < tremorEnd
+    ) {
+        const t = cycleTime - TREMOR_WINDOW_START;
+
+        const rampUp = 0.3;
+        const intensity =
+            t < rampUp
+                ? t / rampUp
+                : Math.max(
+                    0,
+                    1 - (t - rampUp) / (TREMOR_DURATION_SECONDS - rampUp)
+                );
+
+        const magnitude = 7 * intensity;
+        const now = performance.now();
+
+        shakeX =
+            Math.sin(now / 35) * magnitude +
+            Math.sin(now / 17) * magnitude * 0.4;
+
+        shakeY =
+            Math.cos(now / 41) * magnitude +
+            Math.cos(now / 23) * magnitude * 0.4;
+    }
+
+    updateAtmosphereBanner(cycleTime);
+
+    return {
+        nightAlpha: Math.max(0, Math.min(1, nightAlpha)),
+        rainIntensity: Math.max(0, Math.min(1, rainIntensity)),
+        shakeX,
+        shakeY,
+    };
+}
+
+
+// --- Faixa de aviso de narrador, alguns segundos antes de cada evento ---
+
+let atmospherePhase = "calm";
+let bannerText = "";
+let bannerSetAt = 0;
+
+function updateAtmosphereBanner(cycleTime) {
+
+    let phase = "calm";
+
+    if (cycleTime >= RAIN_WINDOW_START - 3 && cycleTime < RAIN_WINDOW_START) {
+        phase = "rain-incoming";
+    }
+    else if (cycleTime >= NIGHT_WINDOW_START - 3 && cycleTime < NIGHT_WINDOW_START) {
+        phase = "night-incoming";
+    }
+    else if (cycleTime >= TREMOR_WINDOW_START - 2 && cycleTime < TREMOR_WINDOW_START) {
+        phase = "tremor-incoming";
+    }
+
+    if (phase === atmospherePhase) {
+        return;
+    }
+
+    atmospherePhase = phase;
+
+    const messages = {
+        "rain-incoming": "🌩️ TEMPESTADE SE APROXIMANDO...",
+        "night-incoming": "🌙 A NOITE ESTÁ CAINDO...",
+        "tremor-incoming": "⚠️ TREMOR À VISTA!",
+    };
+
+    if (messages[phase]) {
+        bannerText = messages[phase];
+        bannerSetAt = performance.now();
+    }
+}
+
+function drawAtmosphereBanner() {
+
+    if (!bannerText) {
+        return;
+    }
+
+    const elapsed =
+        (performance.now() - bannerSetAt) / 1000;
+
+    const fadeIn = 0.4;
+    const hold = 3.2;
+    const fadeOut = 0.8;
+    const total = fadeIn + hold + fadeOut;
+
+    if (elapsed >= total) {
+        bannerText = "";
+        return;
+    }
+
+    let alpha = 1;
+
+    if (elapsed < fadeIn) {
+        alpha = elapsed / fadeIn;
+    }
+    else if (elapsed > fadeIn + hold) {
+        alpha = 1 - (elapsed - fadeIn - hold) / fadeOut;
+    }
+
+    ctx.save();
+
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = "center";
+    ctx.font = "bold 26px Arial";
+
+    const textY = 64;
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+    const textWidth = ctx.measureText(bannerText).width;
+    ctx.fillRect(
+        VIEW_WIDTH / 2 - textWidth / 2 - 24,
+        textY - 32,
+        textWidth + 48,
+        44
+    );
+
+    ctx.fillStyle = "#f4f6f1";
+    ctx.fillText(bannerText, VIEW_WIDTH / 2, textY);
+
+    ctx.restore();
+}
+
+
+// --- Chuva ---
+
+const rainDrops = [];
+const RAIN_DROP_COUNT = 140;
+
+function ensureRainDrops() {
+
+    if (rainDrops.length > 0) {
+        return;
+    }
+
+    for (let i = 0; i < RAIN_DROP_COUNT; i++) {
+        rainDrops.push({
+            x: Math.random() * VIEW_WIDTH,
+            y: Math.random() * VIEW_HEIGHT,
+            length: 14 + Math.random() * 16,
+            speed: 9 + Math.random() * 7,
+        });
+    }
+}
+
+let lightningFlashAlpha = 0;
+let nextLightningCheckAt = 0;
+
+function updateAndDrawRain() {
+
+    if (currentAtmosphere.rainIntensity <= 0) {
+        lightningFlashAlpha = 0;
+        return;
+    }
+
+    ensureRainDrops();
+
+    const alpha =
+        currentAtmosphere.rainIntensity * 0.5;
+
+    ctx.save();
+    ctx.strokeStyle = `rgba(190, 210, 235, ${alpha})`;
+    ctx.lineWidth = 1.4;
+
+    for (const drop of rainDrops) {
+
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x - drop.length * 0.25, drop.y + drop.length);
+        ctx.stroke();
+
+        drop.y += drop.speed;
+        drop.x -= drop.speed * 0.25;
+
+        if (drop.y > VIEW_HEIGHT) {
+            drop.y = -drop.length;
+            drop.x = Math.random() * VIEW_WIDTH;
+        }
+
+        if (drop.x < -20) {
+            drop.x = VIEW_WIDTH + 20;
+        }
+    }
+
+    ctx.restore();
+
+    // Raio aleatório: só quando a chuva está forte de verdade.
+    const now = performance.now();
+
+    if (
+        currentAtmosphere.rainIntensity > 0.75 &&
+        now >= nextLightningCheckAt
+    ) {
+        nextLightningCheckAt = now + 900;
+
+        if (Math.random() < 0.3) {
+            lightningFlashAlpha = 0.85;
+            playThunderSound();
+        }
+    }
+
+    if (lightningFlashAlpha > 0.01) {
+
+        ctx.fillStyle =
+            `rgba(220, 230, 255, ${lightningFlashAlpha})`;
+
+        ctx.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+
+        lightningFlashAlpha *= 0.82;
+    }
+    else {
+        lightningFlashAlpha = 0;
+    }
+}
+
+
+function drawNightOverlay() {
+
+    if (currentAtmosphere.nightAlpha <= 0) {
+        return;
+    }
+
+    ctx.fillStyle =
+        `rgba(6, 10, 22, ${currentAtmosphere.nightAlpha * 0.68})`;
+
+    ctx.fillRect(
+        0,
+        0,
+        VIEW_WIDTH,
+        VIEW_HEIGHT
+    );
+}
+
+
+// ==========================================================
+// ATAQUE AÉREO (avião ou disco voador soltando bombas)
+// ==========================================================
+// O servidor decide tudo que importa: posição das bombas e
+// quando de fato causam dano. Aqui é só a animação/aviso —
+// o veículo é decorativo (tela), a mira de cada bomba é
+// desenhada na posição real do mundo, pra combinar com onde
+// o dano vai acontecer de verdade.
+
+let activeAirRaid = null;
+
+function handleAirRaidEvent(detail) {
+
+    const startedAt =
+        performance.now();
+
+    activeAirRaid = {
+        vehicle: detail.vehicle,
+        startedAt,
+        flightDurationMs:
+            (
+                Math.max(
+                    ...detail.bombs.map(b => b.delay)
+                ) + 2.2
+            ) * 1000,
+        bombs: detail.bombs.map(bomb => ({
+            x: bomb.x,
+            y: bomb.y,
+            triggerAt: startedAt + bomb.delay * 1000,
+            exploded: false,
+            explodedAt: 0,
+        })),
+    };
+}
+
+function drawVehicleSilhouette(
+    vehicle,
+    screenX,
+    screenY,
+    angle
+) {
+
+    ctx.save();
+    ctx.translate(screenX, screenY);
+    ctx.rotate(angle);
+    ctx.fillStyle = "rgba(18, 22, 20, 0.88)";
+
+    if (vehicle === "ufo") {
+
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 34, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(0, -8, 15, 11, 0, Math.PI, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(120, 220, 255, 0.55)";
+        ctx.beginPath();
+        ctx.ellipse(0, 2, 30, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    else {
+
+        // Avião: fuselagem + asas simples, visto de cima.
+        ctx.beginPath();
+        ctx.moveTo(38, 0);
+        ctx.lineTo(-30, -5);
+        ctx.lineTo(-22, 0);
+        ctx.lineTo(-30, 5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -28);
+        ctx.lineTo(10, 0);
+        ctx.lineTo(0, 28);
+        ctx.lineTo(-8, 0);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function updateAndDrawAirRaid() {
+
+    if (!activeAirRaid) {
+        return;
+    }
+
+    const elapsed =
+        performance.now() - activeAirRaid.startedAt;
+
+    const progress =
+        elapsed / activeAirRaid.flightDurationMs;
+
+    // Veículo cruza a tela de um lado ao outro (só decorativo).
+    if (progress <= 1) {
+
+        const screenX =
+            -80 + progress * (VIEW_WIDTH + 160);
+
+        const screenY =
+            70 +
+            Math.sin(progress * Math.PI) * 26;
+
+        drawVehicleSilhouette(
+            activeAirRaid.vehicle,
+            screenX,
+            screenY,
+            0
+        );
+    }
+
+    const now =
+        performance.now();
+
+    let allDone = true;
+
+    for (const bomb of activeAirRaid.bombs) {
+
+        if (bomb.exploded && now - bomb.explodedAt > 900) {
+            continue;
+        }
+
+        allDone = false;
+
+        const screenX =
+            worldToScreenX(bomb.x);
+
+        const screenY =
+            worldToScreenY(bomb.y);
+
+        if (
+            screenX < -60 || screenX > VIEW_WIDTH + 60 ||
+            screenY < -60 || screenY > VIEW_HEIGHT + 60
+        ) {
+
+            if (!bomb.exploded && now >= bomb.triggerAt) {
+                bomb.exploded = true;
+                bomb.explodedAt = now;
+            }
+
+            continue;
+        }
+
+        if (!bomb.exploded) {
+
+            const countdown =
+                Math.max(0, bomb.triggerAt - now);
+
+            const countdownRatio =
+                Math.max(0, Math.min(1, countdown / (AIRRAID_TELEGRAPH_MS)));
+
+            const pulseSpeed =
+                40 + (1 - countdownRatio) * 140;
+
+            const pulse =
+                (Math.sin(now / pulseSpeed) + 1) / 2;
+
+            ctx.save();
+            ctx.strokeStyle =
+                `rgba(255, 60, 40, ${0.5 + pulse * 0.4})`;
+            ctx.lineWidth = 3;
+
+            const radius =
+                14 + countdownRatio * 30;
+
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle =
+                `rgba(255, 60, 40, ${0.18 + pulse * 0.12})`;
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            if (now >= bomb.triggerAt) {
+                bomb.exploded = true;
+                bomb.explodedAt = now;
+
+                createImpactParticles(bomb.x, bomb.y);
+                createImpactParticles(bomb.x, bomb.y);
+
+                playBombSound();
+            }
+        }
+        else {
+
+            const sinceExplosion =
+                now - bomb.explodedAt;
+
+            const ringAlpha =
+                Math.max(0, 1 - sinceExplosion / 500);
+
+            if (ringAlpha > 0) {
+
+                ctx.save();
+                ctx.strokeStyle =
+                    `rgba(255, 200, 120, ${ringAlpha})`;
+                ctx.lineWidth = 4;
+
+                ctx.beginPath();
+                ctx.arc(
+                    screenX,
+                    screenY,
+                    18 + (sinceExplosion / 500) * 60,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+    }
+
+    if (progress > 1 && allDone) {
+        activeAirRaid = null;
+    }
+}
+
+
 function updateCamera() {
 
     let cameraTarget =
@@ -1044,6 +1746,12 @@ function updateCamera() {
                 VIEW_HEIGHT
             )
         );
+
+
+    // Tremor da atmosfera: aplicado por cima, depois do
+    // enquadramento normal — puro efeito visual de câmera.
+    camera.x += currentAtmosphere.shakeX;
+    camera.y += currentAtmosphere.shakeY;
 }
 
 
@@ -3119,8 +3827,28 @@ function applyServerMatchState(
                 serverAngle
             )
         ) {
-            participant.angle =
-                serverAngle;
+
+            if (
+                !Number.isFinite(
+                    participant.angle
+                )
+            ) {
+                participant.angle =
+                    serverAngle;
+            }
+            else {
+
+                // Caminho mais curto (evita girar "pelo lado errado"
+                // quando o ângulo cruza de +180° para -180°).
+                let angleDiff =
+                    serverAngle - participant.angle;
+
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                participant.angle +=
+                    angleDiff * 0.35;
+            }
         }
 
 
@@ -3546,9 +4274,11 @@ function updateLocalPlayer() {
     }
 
 
-    // Predição local: deixa o controle responsivo.
-    // A posição oficial continua sendo corrigida pelo servidor.
-    localPlayer.angle =
+    // Predição local: gira suavemente até a direção do movimento,
+    // em vez de "pular" direto pro ângulo (fica mais natural,
+    // principalmente nas diagonais). A posição/ângulo oficiais
+    // continuam sendo corrigidos pelo servidor.
+    const targetAngle =
         Math.atan2(
             moveY,
             moveX
@@ -3556,15 +4286,52 @@ function updateLocalPlayer() {
         +
         Math.PI / 2;
 
+    if (
+        !Number.isFinite(
+            localPlayer.angle
+        )
+    ) {
+        localPlayer.angle =
+            targetAngle;
+    }
+
+    let angleDiff =
+        targetAngle - localPlayer.angle;
+
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+    const maxTurnPerFrame =
+        0.23;
+
+    angleDiff =
+        Math.max(
+            -maxTurnPerFrame,
+            Math.min(maxTurnPerFrame, angleDiff)
+        );
+
+    localPlayer.angle +=
+        angleDiff;
+
+
+    // Mesmo multiplicador do power-up de velocidade no servidor
+    // (POWERUP_SPEED_MULTIPLIER no main.py). Sem isso, a predição
+    // local anda mais devagar que o servidor enquanto o power-up
+    // está ativo, e a divergência acumulada causa um "teleporte"
+    // de correção repetido — parece travamento.
+    const speedMultiplier =
+        localPlayer.speedBoost ? 1.6 : 1.0;
 
     const stepX =
         moveX *
-        localPlayer.speed;
+        localPlayer.speed *
+        speedMultiplier;
 
 
     const stepY =
         moveY *
-        localPlayer.speed;
+        localPlayer.speed *
+        speedMultiplier;
 
 
     if (
@@ -5788,7 +6555,7 @@ function drawParticipant(
     const lifePercentage =
 
         participant.life /
-        (participant.maxLife || 300);
+        (participant.maxLife || 500);
 
 
     ctx.fillStyle =
@@ -6897,7 +7664,16 @@ function draw() {
     drawParticles(false);
 
 
+    updateAndDrawAirRaid();
+
+
     drawVignette();
+
+
+    updateAndDrawRain();
+
+
+    drawNightOverlay();
 
 
     drawMatchInfo();
@@ -6910,6 +7686,9 @@ function draw() {
 
 
     drawDebugHitboxes();
+
+
+    drawAtmosphereBanner();
 }
 
 
@@ -6943,6 +7722,10 @@ function update() {
 
 
     updateParticles();
+
+
+    currentAtmosphere =
+        computeAtmosphereState();
 
 
     updateCamera();
@@ -7128,6 +7911,9 @@ if (
                     serverMatchState.barrier_catalog
                 ) || barrierTypes;
 
+            matchStartedAt =
+                performance.now();
+
 
             console.log(
                 "[GAME] Estado inicial da partida recebido:",
@@ -7136,6 +7922,14 @@ if (
 
 
             tryStartServerMatch();
+        }
+    );
+
+
+    window.battleTankNetwork.addEventListener(
+        "air-raid",
+        event => {
+            handleAirRaidEvent(event.detail);
         }
     );
 
